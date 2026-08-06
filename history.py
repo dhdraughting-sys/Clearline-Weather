@@ -39,10 +39,12 @@ def daily_summary(rows):
     for date_key in sorted(days.keys()):
         day_rows = days[date_key]
         temps = _floats(day_rows, "temp_c")
+        dew_points = _floats(day_rows, "dew_point_c")
         pressures = _floats(day_rows, "pressure_msl_hpa")
         winds = _floats(day_rows, "wind_kph")
         gusts = _floats(day_rows, "gusts_kph")
         rains = _floats(day_rows, "rain_mm")
+        snow = _floats(day_rows, "snowfall_cm")
         humidities = _floats(day_rows, "humidity_pct")
 
         summaries.append({
@@ -51,12 +53,15 @@ def daily_summary(rows):
             "temp_min": min(temps) if temps else None,
             "temp_max": max(temps) if temps else None,
             "temp_avg": (sum(temps) / len(temps)) if temps else None,
+            "dew_point_avg": (sum(dew_points) / len(dew_points)) if dew_points else None,
             "pressure_min": min(pressures) if pressures else None,
             "pressure_max": max(pressures) if pressures else None,
             "wind_avg": (sum(winds) / len(winds)) if winds else None,
             "gust_max": max(gusts) if gusts else None,
             "rain_max": max(rains) if rains else None,
             "rain_seen": any(r > 0 for r in rains),
+            "snow_max": max(snow) if snow else None,
+            "snow_seen": any(s > 0 for s in snow),
             "humidity_avg": (sum(humidities) / len(humidities)) if humidities else None,
         })
     return summaries
@@ -79,7 +84,7 @@ def render(location_name, rows, output_path, days_limit=180):
     shown = list(reversed(summaries))[:days_limit]
 
     if not shown:
-        body_rows = '<tr><td colspan="6" class="no-data">No readings logged yet - check back after a day or two.</td></tr>'
+        body_rows = '<tr><td colspan="8" class="no-data">No readings logged yet - check back after a day or two.</td></tr>'
     else:
         row_html = []
         for day in shown:
@@ -87,19 +92,27 @@ def render(location_name, rows, output_path, days_limit=180):
                 "Yes, up to {} mm".format(fnum(day["rain_max"], 1))
                 if day["rain_seen"] else "None seen"
             )
+            snow_text = (
+                "Yes, up to {} cm".format(fnum(day["snow_max"], 1))
+                if day["snow_seen"] else "None seen"
+            )
             row_html.append(
                 '<tr><td>{date}</td>'
                 '<td>{tmin}&ndash;{tmax}&deg;C (avg {tavg}&deg;C)</td>'
+                '<td>{dew}&deg;C</td>'
                 '<td>{pmin}&ndash;{pmax} hPa</td>'
                 '<td>{wavg} km/h (gusts {gmax})</td>'
                 '<td>{rain}</td>'
+                '<td>{snow}</td>'
                 '<td>{n}</td></tr>'.format(
                     date=_day_label(day["date"]),
                     tmin=fnum(day["temp_min"], 1), tmax=fnum(day["temp_max"], 1),
                     tavg=fnum(day["temp_avg"], 1),
+                    dew=fnum(day["dew_point_avg"], 1),
                     pmin=fnum(day["pressure_min"], 0), pmax=fnum(day["pressure_max"], 0),
                     wavg=fnum(day["wind_avg"], 1), gmax=fnum(day["gust_max"], 1),
                     rain=rain_text,
+                    snow=snow_text,
                     n=day["readings"],
                 )
             )
@@ -140,7 +153,7 @@ def render(location_name, rows, output_path, days_limit=180):
 
   <div class="card">
     <table class="days">
-      <thead><tr><th>Date</th><th>Temp (min&ndash;max, avg)</th><th>Pressure (min&ndash;max)</th><th>Wind (avg, gusts)</th><th>Rain</th><th>Readings</th></tr></thead>
+      <thead><tr><th>Date</th><th>Temp (min&ndash;max, avg)</th><th>Dew point (avg)</th><th>Pressure (min&ndash;max)</th><th>Wind (avg, gusts)</th><th>Rain</th><th>Snow</th><th>Readings</th></tr></thead>
       <tbody>{body_rows}</tbody>
     </table>
   </div>

@@ -97,21 +97,25 @@ def history_table(rows, limit=24):
         cond_label, cond_emoji = weather_label(row.get("weather_code"))
         body_rows.append(
             '<tr><td>{time}</td><td>{emoji} {temp}°C</td>'
+            '<td>{dew}°C</td>'
             '<td>{pressure} hPa</td><td>{humidity}%</td>'
-            '<td>{wind} km/h {wind_dir}</td><td>{rain} mm</td></tr>'.format(
+            '<td>{wind} km/h {wind_dir}</td><td>{rain} mm</td>'
+            '<td>{snow} cm</td></tr>'.format(
                 time=time_label,
                 emoji=cond_emoji,
                 temp=fnum(row.get("temp_c"), 1),
+                dew=fnum(row.get("dew_point_c"), 1),
                 pressure=fnum(row.get("pressure_msl_hpa"), 1),
                 humidity=fnum(row.get("humidity_pct"), 0),
                 wind=fnum(row.get("wind_kph"), 1),
                 wind_dir=compass_dir(row.get("wind_dir_deg")),
                 rain=fnum(row.get("rain_mm"), 1),
+                snow=fnum(row.get("snowfall_cm"), 1),
             )
         )
 
     return '''<table class="history">
-      <thead><tr><th>Time</th><th>Temp</th><th>Pressure</th><th>Humidity</th><th>Wind</th><th>Rain</th></tr></thead>
+      <thead><tr><th>Time</th><th>Temp</th><th>Dew Pt</th><th>Pressure</th><th>Humidity</th><th>Wind</th><th>Rain</th><th>Snow</th></tr></thead>
       <tbody>{rows}</tbody>
     </table>'''.format(rows="".join(body_rows))
 
@@ -194,9 +198,11 @@ def render(location_name, latest, rows, output_path):
     <div class="grid">
       <div class="stat"><div class="label">Pressure</div><div class="val">{pressure} hPa</div></div>
       <div class="stat"><div class="label">Humidity</div><div class="val">{humidity}%</div></div>
+      <div class="stat"><div class="label">Dew point</div><div class="val">{dew_point}°C</div></div>
       <div class="stat"><div class="label">Wind</div><div class="val">{wind} km/h {wind_dir}</div></div>
       <div class="stat"><div class="label">Gusts</div><div class="val">{gusts} km/h</div></div>
       <div class="stat"><div class="label">Rain</div><div class="val">{rain} mm</div></div>
+      <div class="stat"><div class="label">Snowfall</div><div class="val">{snowfall} cm</div></div>
       <div class="stat"><div class="label">Cloud cover</div><div class="val">{cloud}%</div></div>
       <div class="stat"><div class="label">UV index</div><div class="val">{uv}</div></div>
       <div class="stat"><div class="label">Visibility</div><div class="val">{visibility} km</div></div>
@@ -239,10 +245,12 @@ def render(location_name, latest, rows, output_path):
         trend_text=trend_text,
         pressure=fnum(latest.get("pressure_msl_hpa"), 1),
         humidity=fnum(latest.get("humidity_pct"), 0),
+        dew_point=fnum(latest.get("dew_point_c"), 1),
         wind=fnum(latest.get("wind_kph"), 1),
         wind_dir=compass_dir(latest.get("wind_dir_deg")),
         gusts=fnum(latest.get("gusts_kph"), 1),
         rain=fnum(latest.get("rain_mm"), 1),
+        snowfall=fnum(latest.get("snowfall_cm"), 1),
         cloud=fnum(latest.get("cloud_pct"), 0),
         uv=fnum(latest.get("uv_index"), 1),
         visibility=fnum(

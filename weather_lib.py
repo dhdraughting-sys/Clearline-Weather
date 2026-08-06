@@ -23,20 +23,20 @@ import urllib.parse
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 
 CURRENT_VARS = [
-    "temperature_2m", "relative_humidity_2m", "apparent_temperature",
-    "precipitation", "rain", "weather_code", "pressure_msl",
-    "surface_pressure", "wind_speed_10m", "wind_direction_10m",
-    "wind_gusts_10m", "cloud_cover", "is_day",
+    "temperature_2m", "relative_humidity_2m", "dew_point_2m",
+    "apparent_temperature", "precipitation", "rain", "snowfall",
+    "weather_code", "pressure_msl", "surface_pressure", "wind_speed_10m",
+    "wind_direction_10m", "wind_gusts_10m", "cloud_cover", "is_day",
 ]
 # uv_index and visibility aren't in the `current` block - pulled from the
 # current hour's `hourly` value instead.
 HOURLY_EXTRA_VARS = ["uv_index", "visibility"]
 
 CSV_FIELDS = [
-    "captured_at", "api_time", "temp_c", "apparent_c", "humidity_pct",
-    "pressure_msl_hpa", "surface_pressure_hpa", "wind_kph", "wind_dir_deg",
-    "gusts_kph", "precip_mm", "rain_mm", "cloud_pct", "uv_index",
-    "visibility_m", "weather_code", "is_day",
+    "captured_at", "api_time", "temp_c", "apparent_c", "dew_point_c",
+    "humidity_pct", "pressure_msl_hpa", "surface_pressure_hpa", "wind_kph",
+    "wind_dir_deg", "gusts_kph", "precip_mm", "rain_mm", "snowfall_cm",
+    "cloud_pct", "uv_index", "visibility_m", "weather_code", "is_day",
 ]
 
 # Rough mapping of Open-Meteo's WMO weather_code to a short label + emoji,
@@ -111,6 +111,7 @@ def fetch_current(lat, lon, timeout=20):
         "api_time": api_time,
         "temp_c": cur.get("temperature_2m"),
         "apparent_c": cur.get("apparent_temperature"),
+        "dew_point_c": cur.get("dew_point_2m"),
         "humidity_pct": cur.get("relative_humidity_2m"),
         "pressure_msl_hpa": cur.get("pressure_msl"),
         "surface_pressure_hpa": cur.get("surface_pressure"),
@@ -119,12 +120,38 @@ def fetch_current(lat, lon, timeout=20):
         "gusts_kph": cur.get("wind_gusts_10m"),
         "precip_mm": cur.get("precipitation"),
         "rain_mm": cur.get("rain"),
+        "snowfall_cm": cur.get("snowfall"),
         "cloud_pct": cur.get("cloud_cover"),
         "uv_index": uv_index,
         "visibility_m": visibility,
         "weather_code": cur.get("weather_code"),
         "is_day": cur.get("is_day"),
     }
+
+
+def _migrate_header_if_needed(csv_path):
+    """If the CSV's header doesn't match the current CSV_FIELDS (e.g. new
+    columns like dew point / snowfall were added in a later version),
+    rewrite the file with the new header - existing rows just get blank
+    values for the new columns. Runs automatically so the log growing in
+    the GitHub repo self-heals on the next capture rather than silently
+    misaligning columns forever."""
+    with open(csv_path, "r", newline="", encoding="utf-8") as f:
+        first_line = f.readline()
+    if not first_line:
+        return  # empty file, nothing to migrate
+    header = next(csv.reader([first_line]))
+    if header == CSV_FIELDS:
+        return
+
+    with open(csv_path, "r", newline="", encoding="utf-8") as f:
+        existing_rows = list(csv.DictReader(f))
+
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+        for row in existing_rows:
+            writer.writerow({k: row.get(k, "") for k in CSV_FIELDS})
 
 
 def append_reading(csv_path, reading):
@@ -135,6 +162,7 @@ def append_reading(csv_path, reading):
     file_exists = os.path.exists(csv_path)
 
     if file_exists:
+        _migrate_header_if_needed(csv_path)
         last_row = None
         with open(csv_path, "r", newline="", encoding="utf-8") as f:
             for last_row in csv.DictReader(f):
