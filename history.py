@@ -128,7 +128,7 @@ def render(location_name, rows, output_path, days_limit=180):
   :root{{ --navy:#1F3864; --navy-dark:#152747; --ink:#22303F; --muted:#5C6B7A; --bg:#FAFBFC; --white:#fff; --line:#DCE6F1; }}
   *{{box-sizing:border-box;margin:0;padding:0;}}
   body{{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;padding-bottom:40px;}}
-  .wrap{{max-width:900px;margin:0 auto;padding:20px 16px;}}
+  .wrap{{max-width:1300px;margin:0 auto;padding:20px 16px;}}
   .eyebrow{{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}}
   h1{{font-size:1.5rem;color:var(--navy);margin:4px 0 8px;}}
   .updated{{font-size:.8rem;color:var(--muted);margin-bottom:14px;}}

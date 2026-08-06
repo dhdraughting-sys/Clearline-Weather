@@ -145,7 +145,7 @@ def render(location_name, latest, rows, output_path):
   :root{{ --navy:#1F3864; --navy-dark:#152747; --accent:#C0392B; --ink:#22303F; --muted:#5C6B7A; --bg:#FAFBFC; --white:#fff; --line:#DCE6F1; }}
   *{{box-sizing:border-box;margin:0;padding:0;}}
   body{{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;padding-bottom:40px;}}
-  .wrap{{max-width:640px;margin:0 auto;padding:20px 16px;}}
+  .wrap{{max-width:900px;margin:0 auto;padding:20px 16px;}}
   .eyebrow{{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}}
   h1{{font-size:1.5rem;color:var(--navy);margin:4px 0 2px;}}
   .updated{{font-size:.8rem;color:var(--muted);margin-bottom:18px;}}
@@ -163,6 +163,7 @@ def render(location_name, latest, rows, output_path):
   .stat{{background:rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;}}
   .stat .label{{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;opacity:.7;}}
   .stat .val{{font-size:1.05rem;font-weight:700;margin-top:2px;}}
+  @media (min-width:640px){{ .grid{{grid-template-columns:repeat(4,1fr);}} }}
 
   .card{{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px;}}
   .card h2{{font-size:.95rem;color:var(--navy);margin-bottom:10px;}}
