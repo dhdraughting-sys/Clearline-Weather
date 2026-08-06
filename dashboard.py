@@ -141,6 +141,13 @@ def render(location_name, latest, rows, output_path):
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{location_name} Weather</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#1F3864">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Weather">
 <style>
   :root{{ --navy:#1F3864; --navy-dark:#152747; --accent:#C0392B; --ink:#22303F; --muted:#5C6B7A; --bg:#FAFBFC; --white:#fff; --line:#DCE6F1; }}
   *{{box-sizing:border-box;margin:0;padding:0;}}
@@ -235,6 +242,21 @@ def render(location_name, latest, rows, output_path):
     Data: Open-Meteo.com (CC-BY 4.0) &middot; {n} readings logged &middot; captured locally, not connected to any website or hosting platform.
   </div>
 </div>
+<script>
+if ('serviceWorker' in navigator) {{
+  window.addEventListener('load', function () {{
+    navigator.serviceWorker.register('sw.js').catch(function (err) {{
+      console.warn('Service worker registration failed:', err);
+    }});
+  }});
+  var swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {{
+    if (swRefreshing) return;
+    swRefreshing = true;
+    window.location.reload();
+  }});
+}}
+</script>
 </body>
 </html>'''.format(
         location_name=location_name,
