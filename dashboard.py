@@ -78,6 +78,44 @@ def svg_sparkline(rows, key, width=560, height=120, pad=10, colour="#1F3864", un
     )
 
 
+def history_table(rows, limit=24):
+    """Small table of the most recent readings, newest first. Capped at
+    `limit` rows so the page stays a reasonable size - the full log keeps
+    growing forever in data/<slug>.csv even though the page only shows a
+    recent slice of it."""
+    if not rows:
+        return '<div class="no-data">No readings logged yet.</div>'
+
+    recent = list(reversed(rows[-limit:]))
+    body_rows = []
+    for row in recent:
+        try:
+            ts = datetime.datetime.fromisoformat(row["captured_at"])
+            time_label = ts.strftime("%a %H:%M")
+        except (ValueError, KeyError):
+            time_label = row.get("captured_at", "—")
+        cond_label, cond_emoji = weather_label(row.get("weather_code"))
+        body_rows.append(
+            '<tr><td>{time}</td><td>{emoji} {temp}°C</td>'
+            '<td>{pressure} hPa</td><td>{humidity}%</td>'
+            '<td>{wind} km/h {wind_dir}</td><td>{rain} mm</td></tr>'.format(
+                time=time_label,
+                emoji=cond_emoji,
+                temp=fnum(row.get("temp_c"), 1),
+                pressure=fnum(row.get("pressure_msl_hpa"), 1),
+                humidity=fnum(row.get("humidity_pct"), 0),
+                wind=fnum(row.get("wind_kph"), 1),
+                wind_dir=compass_dir(row.get("wind_dir_deg")),
+                rain=fnum(row.get("rain_mm"), 1),
+            )
+        )
+
+    return '''<table class="history">
+      <thead><tr><th>Time</th><th>Temp</th><th>Pressure</th><th>Humidity</th><th>Wind</th><th>Rain</th></tr></thead>
+      <tbody>{rows}</tbody>
+    </table>'''.format(rows="".join(body_rows))
+
+
 def render(location_name, latest, rows, output_path):
     trend_label, trend_delta = pressure_trend(rows)
     cond_label, cond_emoji = weather_label(latest.get("weather_code"))
@@ -126,6 +164,13 @@ def render(location_name, latest, rows, output_path):
   .chart-label{{font-size:9px;fill:var(--muted);}}
   .no-data{{font-size:.85rem;color:var(--muted);padding:20px 0;text-align:center;}}
 
+  table.history{{width:100%;border-collapse:collapse;font-size:.82rem;}}
+  table.history th{{text-align:left;color:var(--navy);font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:2px solid var(--line);}}
+  table.history td{{padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap;}}
+  table.history tbody tr:nth-child(even){{background:var(--bg);}}
+  .table-wrap{{overflow-x:auto;}}
+  .table-note{{font-size:.72rem;color:var(--muted);margin-top:10px;}}
+
   .footer-note{{font-size:.75rem;color:var(--muted);text-align:center;margin-top:20px;}}
 </style>
 </head>
@@ -169,6 +214,14 @@ def render(location_name, latest, rows, output_path):
     {wind_chart}
   </div>
 
+  <div class="card">
+    <h2>Recent readings</h2>
+    <div class="table-wrap">
+      {history_table}
+    </div>
+    <div class="table-note">Showing the most recent {table_rows} of {n} logged readings.</div>
+  </div>
+
   <div class="footer-note">
     Data: Open-Meteo.com (CC-BY 4.0) &middot; {n} readings logged &middot; captured locally, not connected to any website or hosting platform.
   </div>
@@ -197,6 +250,8 @@ def render(location_name, latest, rows, output_path):
         temp_chart=temp_chart,
         pressure_chart=pressure_chart,
         wind_chart=wind_chart,
+        history_table=history_table(rows),
+        table_rows=min(len(rows), 24),
         hours=48,
         n=len(rows),
     )
