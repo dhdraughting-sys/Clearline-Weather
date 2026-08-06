@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Meriden, CV7 7HT Weather History</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#1F3864">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Weather">
 <style>
   :root{ --navy:#1F3864; --navy-dark:#152747; --ink:#22303F; --muted:#5C6B7A; --bg:#FAFBFC; --white:#fff; --line:#DCE6F1; }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -34,7 +41,7 @@
   <div class="card">
     <table class="days">
       <thead><tr><th>Date</th><th>Temp (min&ndash;max, avg)</th><th>Dew point (avg)</th><th>Pressure (min&ndash;max)</th><th>Wind (avg, gusts)</th><th>Rain</th><th>Snow</th><th>Readings</th></tr></thead>
-      <tbody><tr><td>Thu 06 Aug 2026</td><td>12.9&ndash;15.1&deg;C (avg 13.5&deg;C)</td><td>9.2&deg;C</td><td>1019&ndash;1020 hPa</td><td>10.2 km/h (gusts 20.9)</td><td>None seen</td><td>None seen</td><td>10</td></tr></tbody>
+      <tbody><tr><td>Thu 06 Aug 2026</td><td>12.9&ndash;15.1&deg;C (avg 13.5&deg;C)</td><td>9.2&deg;C</td><td>1019&ndash;1020 hPa</td><td>10.2 km/h (gusts 20.9)</td><td>None seen</td><td>None seen</td><td>11</td></tr></tbody>
     </table>
   </div>
 
@@ -42,5 +49,20 @@
     Data: Open-Meteo.com (CC-BY 4.0) &middot; showing the most recent 1 of 1 logged day.
   </div>
 </div>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function (err) {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+  var swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (swRefreshing) return;
+    swRefreshing = true;
+    window.location.reload();
+  });
+}
+</script>
 </body>
 </html>

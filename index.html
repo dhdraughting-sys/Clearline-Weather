@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Meriden, CV7 7HT Weather</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#1F3864">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Weather">
 <style>
   :root{ --navy:#1F3864; --navy-dark:#152747; --accent:#C0392B; --ink:#22303F; --muted:#5C6B7A; --bg:#FAFBFC; --white:#fff; --line:#DCE6F1; }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -48,36 +55,36 @@
 <div class="wrap">
   <span class="eyebrow">Personal Weather Log</span>
   <h1>Meriden, CV7 7HT</h1>
-  <div class="updated">Last updated Thu 06 Aug 2026, 03:09 &middot; <a href="history.html">View full history &rarr;</a></div>
+  <div class="updated">Last updated Thu 06 Aug 2026, 03:20 &middot; <a href="history.html">View full history &rarr;</a></div>
 
   <div class="now-card">
     <div class="now-top">
       <div>
-        <div class="now-temp">12.9°C</div>
-        <div class="now-cond">🌤️ Mainly clear &middot; feels like 11.4°C</div>
+        <div class="now-temp">13.1°C</div>
+        <div class="now-cond">⛅ Partly cloudy &middot; feels like 11.4°C</div>
       </div>
-      <div class="now-emoji">🌤️</div>
+      <div class="now-emoji">⛅</div>
     </div>
     <div class="now-sub">Pressure trend: ▶ Steady (+0.8 hPa / 3h)</div>
     <div class="grid">
       <div class="stat"><div class="label">Pressure</div><div class="val">1019.8 hPa</div></div>
-      <div class="stat"><div class="label">Humidity</div><div class="val">78%</div></div>
+      <div class="stat"><div class="label">Humidity</div><div class="val">77%</div></div>
       <div class="stat"><div class="label">Dew point</div><div class="val">9.2°C</div></div>
-      <div class="stat"><div class="label">Wind</div><div class="val">9.4 km/h W</div></div>
-      <div class="stat"><div class="label">Gusts</div><div class="val">17.3 km/h</div></div>
+      <div class="stat"><div class="label">Wind</div><div class="val">10.4 km/h W</div></div>
+      <div class="stat"><div class="label">Gusts</div><div class="val">19.8 km/h</div></div>
       <div class="stat"><div class="label">Rain</div><div class="val">0.0 mm</div></div>
       <div class="stat"><div class="label">Snowfall</div><div class="val">0.0 cm</div></div>
-      <div class="stat"><div class="label">Cloud cover</div><div class="val">44%</div></div>
+      <div class="stat"><div class="label">Cloud cover</div><div class="val">66%</div></div>
       <div class="stat"><div class="label">UV index</div><div class="val">0.0</div></div>
-      <div class="stat"><div class="label">Visibility</div><div class="val">25.3 km</div></div>
+      <div class="stat"><div class="label">Visibility</div><div class="val">26.6 km</div></div>
     </div>
   </div>
 
   <div class="card">
     <h2>Temperature — last 48h</h2>
     <svg viewBox="0 0 560 120" class="sparkline" preserveAspectRatio="none">
-      <polyline fill="none" stroke="#C0392B" stroke-width="2" points="10.0,10.0 70.0,46.4 130.0,91.8 190.0,100.9 250.0,73.6 310.0,100.9 370.0,78.2 430.0,110.0 490.0,110.0 550.0,110.0" />
-      <circle cx="550.0" cy="110.0" r="3.5" fill="#C0392B" />
+      <polyline fill="none" stroke="#C0392B" stroke-width="2" points="10.0,10.0 64.0,46.4 118.0,91.8 172.0,100.9 226.0,73.6 280.0,100.9 334.0,78.2 388.0,110.0 442.0,110.0 496.0,110.0 550.0,100.9" />
+      <circle cx="550.0" cy="100.9" r="3.5" fill="#C0392B" />
       <text x="10" y="14" class="chart-label">15.1°C</text>
       <text x="10" y="118" class="chart-label">12.9°C</text>
     </svg>
@@ -85,7 +92,7 @@
   <div class="card">
     <h2>Pressure — last 48h</h2>
     <svg viewBox="0 0 560 120" class="sparkline" preserveAspectRatio="none">
-      <polyline fill="none" stroke="#1F3864" stroke-width="2" points="10.0,110.0 70.0,110.0 130.0,47.5 190.0,47.5 250.0,110.0 310.0,47.5 370.0,110.0 430.0,22.5 490.0,22.5 550.0,10.0" />
+      <polyline fill="none" stroke="#1F3864" stroke-width="2" points="10.0,110.0 64.0,110.0 118.0,47.5 172.0,47.5 226.0,110.0 280.0,47.5 334.0,110.0 388.0,22.5 442.0,22.5 496.0,10.0 550.0,10.0" />
       <circle cx="550.0" cy="10.0" r="3.5" fill="#1F3864" />
       <text x="10" y="14" class="chart-label">1019.8 hPa</text>
       <text x="10" y="118" class="chart-label">1019.0 hPa</text>
@@ -94,8 +101,8 @@
   <div class="card">
     <h2>Wind speed — last 48h</h2>
     <svg viewBox="0 0 560 120" class="sparkline" preserveAspectRatio="none">
-      <polyline fill="none" stroke="#3E6FA6" stroke-width="2" points="10.0,10.0 70.0,43.3 130.0,43.3 190.0,62.4 250.0,62.4 310.0,95.7 370.0,62.4 430.0,110.0 490.0,110.0 550.0,110.0" />
-      <circle cx="550.0" cy="110.0" r="3.5" fill="#3E6FA6" />
+      <polyline fill="none" stroke="#3E6FA6" stroke-width="2" points="10.0,10.0 64.0,43.3 118.0,43.3 172.0,62.4 226.0,62.4 280.0,95.7 334.0,62.4 388.0,110.0 442.0,110.0 496.0,110.0 550.0,62.4" />
+      <circle cx="550.0" cy="62.4" r="3.5" fill="#3E6FA6" />
       <text x="10" y="14" class="chart-label">11.5 km/h</text>
       <text x="10" y="118" class="chart-label">9.4 km/h</text>
     </svg>
@@ -106,15 +113,30 @@
     <div class="table-wrap">
       <table class="history">
       <thead><tr><th>Time</th><th>Temp</th><th>Dew Pt</th><th>Pressure</th><th>Humidity</th><th>Wind</th><th>Rain</th><th>Snow</th></tr></thead>
-      <tbody><tr><td>Thu 03:04</td><td>🌤️ 12.9°C</td><td>9.2°C</td><td>1019.8 hPa</td><td>78%</td><td>9.4 km/h W</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 02:53</td><td>🌤️ 12.9°C</td><td>—°C</td><td>1019.7 hPa</td><td>78%</td><td>9.4 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 02:30</td><td>🌤️ 12.9°C</td><td>—°C</td><td>1019.7 hPa</td><td>77%</td><td>9.4 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 02:20</td><td>☀️ 13.6°C</td><td>—°C</td><td>1019.0 hPa</td><td>74%</td><td>10.4 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 02:19</td><td>☀️ 13.1°C</td><td>—°C</td><td>1019.5 hPa</td><td>75%</td><td>9.7 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 02:03</td><td>☀️ 13.7°C</td><td>—°C</td><td>1019.0 hPa</td><td>74%</td><td>10.4 km/h WSW</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 02:03</td><td>☀️ 13.1°C</td><td>—°C</td><td>1019.5 hPa</td><td>75%</td><td>10.4 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 01:41</td><td>☀️ 13.3°C</td><td>—°C</td><td>1019.5 hPa</td><td>74%</td><td>10.8 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 01:31</td><td>☀️ 14.3°C</td><td>—°C</td><td>1019.0 hPa</td><td>71%</td><td>10.8 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 01:17</td><td>🌤️ 15.1°C</td><td>—°C</td><td>1019.0 hPa</td><td>67%</td><td>11.5 km/h W</td><td>0.0 mm</td><td>— cm</td></tr></tbody>
+      <tbody><tr><td>Thu 03:20</td><td>⛅ 13.1°C</td><td>9.2°C</td><td>1019.8 hPa</td><td>77%</td><td>10.4 km/h W</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 03:04</td><td>🌤️ 12.9°C</td><td>9.2°C</td><td>1019.8 hPa</td><td>78%</td><td>9.4 km/h W</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 02:53</td><td>🌤️ 12.9°C</td><td>—°C</td><td>1019.7 hPa</td><td>78%</td><td>9.4 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 02:30</td><td>🌤️ 12.9°C</td><td>—°C</td><td>1019.7 hPa</td><td>77%</td><td>9.4 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 02:20</td><td>☀️ 13.6°C</td><td>—°C</td><td>1019.0 hPa</td><td>74%</td><td>10.4 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 02:19</td><td>☀️ 13.1°C</td><td>—°C</td><td>1019.5 hPa</td><td>75%</td><td>9.7 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 02:03</td><td>☀️ 13.7°C</td><td>—°C</td><td>1019.0 hPa</td><td>74%</td><td>10.4 km/h WSW</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 02:03</td><td>☀️ 13.1°C</td><td>—°C</td><td>1019.5 hPa</td><td>75%</td><td>10.4 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 01:41</td><td>☀️ 13.3°C</td><td>—°C</td><td>1019.5 hPa</td><td>74%</td><td>10.8 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 01:31</td><td>☀️ 14.3°C</td><td>—°C</td><td>1019.0 hPa</td><td>71%</td><td>10.8 km/h W</td><td>0.0 mm</td><td>— cm</td></tr><tr><td>Thu 01:17</td><td>🌤️ 15.1°C</td><td>—°C</td><td>1019.0 hPa</td><td>67%</td><td>11.5 km/h W</td><td>0.0 mm</td><td>— cm</td></tr></tbody>
     </table>
     </div>
-    <div class="table-note">Showing the most recent 10 of 10 logged readings.</div>
+    <div class="table-note">Showing the most recent 11 of 11 logged readings.</div>
   </div>
 
   <div class="footer-note">
-    Data: Open-Meteo.com (CC-BY 4.0) &middot; 10 readings logged &middot; captured locally, not connected to any website or hosting platform.
+    Data: Open-Meteo.com (CC-BY 4.0) &middot; 11 readings logged &middot; captured locally, not connected to any website or hosting platform.
   </div>
 </div>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function (err) {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+  var swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (swRefreshing) return;
+    swRefreshing = true;
+    window.location.reload();
+  });
+}
+</script>
 </body>
 </html>
