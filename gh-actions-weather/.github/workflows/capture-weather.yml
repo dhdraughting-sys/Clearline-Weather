@@ -1,0 +1,39 @@
+name: Capture weather
+
+# Runs on GitHub's own servers, on a schedule - completely independent of
+# whether your PC is on. "workflow_dispatch" also lets you trigger a run
+# by hand from the Actions tab any time, e.g. to test this.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+# Needed so the workflow is allowed to commit/push the updated log + page
+# back into this same repo.
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch current weather and rebuild the dashboard
+        run: python capture.py
+
+      - name: Commit and push if anything changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/ index.html
+          if git diff --cached --quiet; then
+            echo "Nothing new this run - skipping commit."
+          else
+            git commit -m "Weather update: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git push
+          fi
