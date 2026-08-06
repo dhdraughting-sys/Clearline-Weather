@@ -20,8 +20,9 @@ changes on disk - this script itself never touches git.
 
 import sys
 
-from weather_lib import load_locations, fetch_current, append_reading, load_recent
+from weather_lib import load_locations, fetch_current, append_reading, load_recent, load_all
 import dashboard
+import history
 
 HISTORY_HOURS = 48
 
@@ -56,6 +57,11 @@ def main():
         rows = load_recent(csv_path, hours=HISTORY_HOURS)
         dashboard.render(loc["name"], reading, rows, output_path)
         print("[{}] dashboard updated -> {}".format(slug, output_path))
+
+        all_rows = load_all(csv_path)
+        history_path = "history.html" if len(locations) == 1 else "history_{}.html".format(slug)
+        history.render(loc["name"], all_rows, history_path)
+        print("[{}] history page updated -> {}".format(slug, history_path))
 
     if any_errors:
         sys.exit(1)

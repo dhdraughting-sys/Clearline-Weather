@@ -150,6 +150,20 @@ def append_reading(csv_path, reading):
     return True
 
 
+def load_all(csv_path):
+    """Load every row ever logged, oldest first - no time cutoff. Used for
+    the long-term history page; load_recent() below is for the charts/table
+    that only care about the last N hours."""
+    if not os.path.exists(csv_path):
+        return []
+    rows = []
+    with open(csv_path, "r", newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            rows.append(row)
+    rows.sort(key=lambda r: r.get("captured_at", ""))
+    return rows
+
+
 def load_recent(csv_path, hours=48):
     """Load rows from the last `hours` hours (by captured_at), oldest first."""
     if not os.path.exists(csv_path):

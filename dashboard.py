@@ -145,6 +145,8 @@ def render(location_name, latest, rows, output_path):
   .eyebrow{{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}}
   h1{{font-size:1.5rem;color:var(--navy);margin:4px 0 2px;}}
   .updated{{font-size:.8rem;color:var(--muted);margin-bottom:18px;}}
+  .updated a{{color:var(--navy);font-weight:600;text-decoration:none;}}
+  .updated a:hover{{text-decoration:underline;}}
 
   .now-card{{background:linear-gradient(135deg,var(--navy),var(--navy-dark));color:#fff;border-radius:16px;padding:26px;margin-bottom:16px;}}
   .now-top{{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}}
@@ -178,7 +180,7 @@ def render(location_name, latest, rows, output_path):
 <div class="wrap">
   <span class="eyebrow">Personal Weather Log</span>
   <h1>{location_name}</h1>
-  <div class="updated">Last updated {generated_at}</div>
+  <div class="updated">Last updated {generated_at} &middot; <a href="history.html">View full history &rarr;</a></div>
 
   <div class="now-card">
     <div class="now-top">
