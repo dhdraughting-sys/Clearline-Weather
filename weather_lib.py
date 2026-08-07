@@ -19,8 +19,22 @@ import os
 import urllib.request
 import urllib.error
 import urllib.parse
+from zoneinfo import ZoneInfo
 
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+
+UK_TZ = ZoneInfo("Europe/London")
+
+
+def now_local():
+    """UK wall-clock time (correctly handling the BST/GMT switch), as a
+    naive datetime with no tzinfo attached - so it stays directly
+    comparable with the plain timestamps already stored in the CSV log.
+
+    This matters because this script runs on a GitHub Actions runner,
+    which defaults to UTC - datetime.datetime.now() alone would silently
+    log everything an hour behind during British Summer Time."""
+    return datetime.datetime.now(UK_TZ).replace(tzinfo=None)
 
 CURRENT_VARS = [
     "temperature_2m", "relative_humidity_2m", "dew_point_2m",
@@ -104,10 +118,10 @@ def fetch_current(lat, lon, timeout=20):
                 visibility = vis_list[i] if i < len(vis_list) else None
                 break
 
-    now_local = datetime.datetime.now().isoformat(timespec="seconds")
+    captured_at_local = now_local().isoformat(timespec="seconds")
 
     return {
-        "captured_at": now_local,
+        "captured_at": captured_at_local,
         "api_time": api_time,
         "temp_c": cur.get("temperature_2m"),
         "apparent_c": cur.get("apparent_temperature"),
@@ -196,7 +210,7 @@ def load_recent(csv_path, hours=48):
     """Load rows from the last `hours` hours (by captured_at), oldest first."""
     if not os.path.exists(csv_path):
         return []
-    cutoff = datetime.datetime.now() - datetime.timedelta(hours=hours)
+    cutoff = now_local() - datetime.timedelta(hours=hours)
     rows = []
     with open(csv_path, "r", newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):

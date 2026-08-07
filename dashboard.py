@@ -6,7 +6,7 @@ opened straight from a phone's file browser with no internet connection.
 
 import datetime
 
-from weather_lib import WEATHER_CODE_LABELS, pressure_trend
+from weather_lib import WEATHER_CODE_LABELS, pressure_trend, now_local
 
 COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
            "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
@@ -123,7 +123,7 @@ def history_table(rows, limit=24):
 def render(location_name, latest, rows, output_path):
     trend_label, trend_delta = pressure_trend(rows)
     cond_label, cond_emoji = weather_label(latest.get("weather_code"))
-    generated_at = datetime.datetime.now().strftime("%a %d %b %Y, %H:%M")
+    generated_at = now_local().strftime("%a %d %b %Y, %H:%M")
 
     trend_arrow = {"Rising": "▲", "Falling": "▼", "Steady": "▶"}.get(trend_label, "")
     trend_text = (
