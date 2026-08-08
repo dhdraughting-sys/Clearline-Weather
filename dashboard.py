@@ -214,6 +214,8 @@ def render(location_name, latest, rows, output_path):
       <div class="stat"><div class="label">Cloud cover</div><div class="val">{cloud}%</div></div>
       <div class="stat"><div class="label">UV index</div><div class="val">{uv}</div></div>
       <div class="stat"><div class="label">Visibility</div><div class="val">{visibility} km</div></div>
+      <div class="stat"><div class="label">Sunrise</div><div class="val">🌅 {sunrise}</div></div>
+      <div class="stat"><div class="label">Sunset</div><div class="val">🌇 {sunset}</div></div>
     </div>
   </div>
 
@@ -280,6 +282,8 @@ if ('serviceWorker' in navigator) {{
             (float(latest["visibility_m"]) / 1000) if latest.get("visibility_m") not in (None, "") else None,
             1,
         ),
+        sunrise=latest.get("sunrise") or "—",
+        sunset=latest.get("sunset") or "—",
         temp_chart=temp_chart,
         pressure_chart=pressure_chart,
         wind_chart=wind_chart,

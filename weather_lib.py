@@ -51,6 +51,7 @@ CSV_FIELDS = [
     "humidity_pct", "pressure_msl_hpa", "surface_pressure_hpa", "wind_kph",
     "wind_dir_deg", "gusts_kph", "precip_mm", "rain_mm", "snowfall_cm",
     "cloud_pct", "uv_index", "visibility_m", "weather_code", "is_day",
+    "sunrise", "sunset",
 ]
 
 # Rough mapping of Open-Meteo's WMO weather_code to a short label + emoji,
@@ -84,6 +85,7 @@ def fetch_current(lat, lon, timeout=20):
         "longitude": lon,
         "current": ",".join(CURRENT_VARS),
         "hourly": ",".join(HOURLY_EXTRA_VARS),
+        "daily": "sunrise,sunset",
         "forecast_days": 1,
         "timezone": "Europe/London",
     }
@@ -118,6 +120,15 @@ def fetch_current(lat, lon, timeout=20):
                 visibility = vis_list[i] if i < len(vis_list) else None
                 break
 
+    # Sunrise/sunset for today, e.g. "2026-08-07T05:32" - trimmed to just
+    # "05:32" for display. Requested with timezone=Europe/London above, so
+    # these already come back as UK wall-clock time, no conversion needed.
+    daily = data.get("daily", {})
+    sunrise_list = daily.get("sunrise", [])
+    sunset_list = daily.get("sunset", [])
+    sunrise = sunrise_list[0][-5:] if sunrise_list else None
+    sunset = sunset_list[0][-5:] if sunset_list else None
+
     captured_at_local = now_local().isoformat(timespec="seconds")
 
     return {
@@ -140,6 +151,8 @@ def fetch_current(lat, lon, timeout=20):
         "visibility_m": visibility,
         "weather_code": cur.get("weather_code"),
         "is_day": cur.get("is_day"),
+        "sunrise": sunrise,
+        "sunset": sunset,
     }
 
 
