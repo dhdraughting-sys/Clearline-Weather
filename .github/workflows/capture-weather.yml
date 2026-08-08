@@ -5,7 +5,7 @@ name: Capture weather
 # by hand from the Actions tab any time, e.g. to test this.
 on:
   schedule:
-    - cron: "*/15 * * * *"
+   - cron: "7,22,37,52 * * * *"
   workflow_dispatch: {}
 
 # Needed so the workflow is allowed to commit/push the updated log + page
