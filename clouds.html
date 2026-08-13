@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud Guide - Clearline Weather</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#1F3864">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Weather">
+<style>
+  :root{ --navy:#1F3864; --navy-dark:#152747; --accent:#C0392B; --ink:#22303F; --muted:#5C6B7A; --bg:#FAFBFC; --white:#fff; --line:#DCE6F1; --gold:#C7960A; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;padding-bottom:40px;}
+  .wrap{max-width:900px;margin:0 auto;padding:20px 16px;}
+  .eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+  h1{font-size:1.5rem;color:var(--navy);margin:4px 0 8px;}
+  .back-link{display:inline-block;font-size:.85rem;color:var(--navy);margin-bottom:6px;text-decoration:none;font-weight:600;}
+  .back-link:hover{text-decoration:underline;}
+  .intro{font-size:.85rem;color:var(--muted);margin-bottom:18px;}
+
+  .progress-card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:18px;}
+  .progress-label{font-size:.8rem;font-weight:700;color:var(--navy);margin-bottom:8px;}
+  .progress-track{background:var(--bg);border:1px solid var(--line);border-radius:999px;height:10px;overflow:hidden;}
+  .progress-fill{background:linear-gradient(90deg,var(--navy),var(--gold));height:100%;width:0%;transition:width .3s ease;}
+
+  .card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px;}
+  .card h2{font-size:.95rem;color:var(--navy);margin-bottom:12px;}
+
+  .live-strip{display:flex;flex-wrap:wrap;gap:10px;}
+  .live-card{flex:1 1 150px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+  .live-card-name{display:block;font-size:.85rem;font-weight:700;color:var(--navy);text-decoration:none;}
+  .live-card-name:hover{text-decoration:underline;}
+  .live-card-meta{font-size:.72rem;color:var(--muted);margin:2px 0 8px;}
+  .live-guess{display:inline-block;font-size:.78rem;font-weight:600;color:var(--accent);text-decoration:none;}
+  .live-guess:hover{text-decoration:underline;}
+  .live-guess.muted{color:var(--muted);font-weight:400;}
+
+  .spotlight-card{background:linear-gradient(135deg,var(--navy),var(--navy-dark));border-radius:14px;padding:18px 20px;margin-bottom:18px;color:#fff;}
+  .spotlight-eyebrow{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#AFC2E0;}
+  .spotlight-name{font-size:1.2rem;font-weight:700;margin:4px 0 6px;}
+  .spotlight-text{font-size:.85rem;color:#DCE6F1;}
+  .spotlight-link{display:inline-block;margin-top:8px;font-size:.78rem;color:#fff;font-weight:700;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.5);}
+
+  .family-section{margin-bottom:8px;}
+  .family-title{font-size:.85rem;color:var(--navy);text-transform:uppercase;letter-spacing:.04em;margin:22px 0 10px;}
+  .cloud-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+  @media (min-width:640px){ .cloud-grid{grid-template-columns:repeat(2,1fr);} }
+  .cloud-card{background:var(--white);border:1px solid var(--line);border-radius:12px;padding:14px 16px;scroll-margin-top:16px;}
+  .cloud-card.learned-highlight{border-color:var(--gold);}
+  .cloud-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .cloud-name{font-size:.95rem;font-weight:700;color:var(--navy);}
+  .cloud-abbr{font-size:.68rem;color:var(--muted);margin-left:6px;}
+  .cloud-altitude{font-size:.72rem;color:var(--muted);margin-bottom:8px;}
+  .cloud-field{font-size:.8rem;color:var(--ink);margin-top:6px;}
+  .cloud-field strong{color:var(--navy);}
+  .learn-toggle{flex-shrink:0;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:.68rem;font-weight:700;color:var(--navy);cursor:pointer;white-space:nowrap;}
+  .learn-toggle.learned{background:var(--navy);border-color:var(--navy);color:#fff;}
+
+  .no-data{font-size:.85rem;color:var(--muted);padding:16px 0;text-align:center;}
+  .footer-note{font-size:.75rem;color:var(--muted);text-align:center;margin-top:20px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="eyebrow">Personal Weather Log</span>
+  <h1>Cloud Guide</h1>
+  <a class="back-link" href="index.html">&larr; Back to current conditions</a>
+  <div class="intro">The ten main cloud types, what they look like, and what they usually mean - plus a guess at what's over each of your locations right now.</div>
+
+  <div class="progress-card">
+    <div class="progress-label" id="progress-label">0 of 10 cloud types logged</div>
+    <div class="progress-track"><div class="progress-fill" id="progress-bar"></div></div>
+  </div>
+
+  <div class="spotlight-card">
+    <div class="spotlight-eyebrow">Cloud of the day</div>
+    <div class="spotlight-name">Nimbostratus (Ns)</div>
+    <div class="spotlight-text">A thick, dark grey, featureless blanket that blots out the sun completely.</div>
+    <a class="spotlight-link" href="#cloud-nimbostratus">Read more below &darr;</a>
+  </div>
+
+  <div class="card">
+    <h2>Right now at your locations</h2>
+    <div class="live-strip"><div class="live-card"><a class="live-card-name" href="index.html">Meriden, CV7 7HT</a><div class="live-card-meta">0% cloud cover</div><span class="live-guess muted">Clear skies here right now - a good time to check for faint high cirrus or contrails.</span></div><div class="live-card"><a class="live-card-name" href="dashboard_heathrow.html">London Heathrow</a><div class="live-card-meta">0% cloud cover</div><span class="live-guess muted">Clear skies here right now - a good time to check for faint high cirrus or contrails.</span></div><div class="live-card"><a class="live-card-name" href="dashboard_dawlish-warren.html">Dawlish Warren</a><div class="live-card-meta">26% cloud cover</div><a class="live-guess" href="#cloud-cirrus">Likely Cirrus →</a></div><div class="live-card"><a class="live-card-name" href="dashboard_inverness.html">Inverness</a><div class="live-card-meta">34% cloud cover</div><a class="live-guess" href="#cloud-cirrus">Likely Cirrus →</a></div><div class="live-card"><a class="live-card-name" href="dashboard_la-rochelle.html">La Rochelle, France</a><div class="live-card-meta">0% cloud cover</div><span class="live-guess muted">Clear skies here right now - a good time to check for faint high cirrus or contrails.</span></div></div>
+  </div>
+
+  
+    <div class="family-section">
+      <h2 class="family-title">High cloud</h2>
+      <div class="cloud-grid">
+      <div class="cloud-card" id="cloud-cirrus">
+        <div class="cloud-card-head">
+          <div>
+            <span class="cloud-name">Cirrus</span>
+            <span class="cloud-abbr">Ci</span>
+          </div>
+          <button class="learn-toggle" data-cloud-id="cirrus" type="button">Mark as spotted</button>
+        </div>
+        <div class="cloud-altitude">5,000-13,000 m &middot; Ice crystals</div>
+        <div class="cloud-field"><strong>Look for:</strong> Thin, wispy white streaks or filaments, sometimes hooked at one end into “mares’ tails” by strong high-altitude wind.</div>
+        <div class="cloud-field"><strong>Often means:</strong> Usually fair weather right now, but thickening, spreading cirrus is often the first sign a warm front - and rain - is on the way in the next day or two.</div>
+      </div>
+      <div class="cloud-card" id="cloud-cirrocumulus">
+        <div class="cloud-card-head">
+          <div>
+            <span class="cloud-name">Cirrocumulus</span>
+            <span class="cloud-abbr">Cc</span>
+          </div>
+          <button class="learn-toggle" data-cloud-id="cirrocumulus" type="button">Mark as spotted</button>
+        </div>
+        <div class="cloud-altitude">5,000-13,000 m &middot; Ice crystals (sometimes supercooled water)</div>
+        <div class="cloud-field"><strong>Look for:</strong> Small white ripples or tufts in orderly rows, giving a dappled “mackerel sky”.</div>
+        <div class="cloud-field"><strong>Often means:</strong> Fair for now, but a classic sign of unsettled, changeable weather moving in.</div>
+      </div>
+      <div class="cloud-card" id="cloud-cirrostratus">
+        <div class="cloud-card-head">
+          <div>
+            <span class="cloud-name">Cirrostratus</span>
+            <span class="cloud-abbr">Cs</span>
+          </div>
+          <button class="learn-toggle" data-cloud-id="cirrostratus" type="button">Mark as spotted</button>
+        </div>
+        <div class="cloud-altitude">5,000-13,000 m &middot; Ice crystals</div>
+        <div class="cloud-field"><strong>Look for:</strong> A thin, milky veil covering most or all of the sky - often only obvious because it puts a halo ring around the sun or moon.</div>
+        <div class="cloud-field"><strong>Often means:</strong> Rain or snow within 12-24 hours is a common follow-up once this thickens.</div>
+      </div></div>
+    </div>
+    <div class="family-section">
+      <h2 class="family-title">Middle cloud</h2>
+      <div class="cloud-grid">
+      <div class="cloud-card" id="cloud-altocumulus">
+        <div class="cloud-card-head">
+          <div>
+            <span class="cloud-name">Altocumulus</span>
+            <span class="cloud-abbr">Ac</span>
+          </div>
+          <button class="learn-toggle" data-cloud-id="altocumulus" type="button">Mark as spotted</button>
+        </div>
+        <div class="cloud-altitude">2,000-7,000 m &middot; Mostly water droplets</div>
+        <div class="cloud-field"><strong>Look for:</strong> Grey-white patches or rolls in clusters or lines - the classic “flock of sheep” sky.</div>
+        <div class="cloud-field"><strong>Often means:</strong> Generally settled, but altocumulus on a warm, humid morning can signal thunderstorms building later that same day.</div>
+      </div>
+      <div class="cloud-card" id="cloud-altostratus">
+        <div class="cloud-card-head">
+          <div>
+            <span class="cloud-name">Altostratus</span>
+            <span class="cloud-abbr">As</span>
+          </div>
+          <button class="learn-toggle" data-cloud-id="altostratus" type="button">Mark as spotted</button>
+        </div>
+        <div class="cloud-altitude">2,000-7,000 m &middot; Water droplets and ice crystals</div>
+        <div class="cloud-field"><strong>Look for:</strong> A featureless grey or blue-grey sheet across the whole sky - the sun looks like it's behind frosted glass, no halo, no sharp shadows.</div>
+        <div class="cloud-field"><strong>Often means:</strong> Usually the lead-in to a spell of continuous rain or snow, thickening from here into nimbostratus.</div>
+      </div>
+      <div class="cloud-card" id="cloud-nimbostratus">
+        <div class="cloud-card-head">
+          <div>
+            <span class="cloud-name">Nimbostratus</span>
+            <span class="cloud-abbr">Ns</span>
+          </div>
+          <button class="learn-toggle" data-cloud-id="nimbostratus" type="button">Mark as spotted</button>
+        </div>
+        <div class="cloud-altitude">Surface-3,000 m (thick, deep layer) &middot; Water droplets and ice crystals</div>
+        <div class="cloud-field"><strong>Look for:</strong> A thick, dark grey, featureless blanket that blots out the sun completely.</div>
+        <div class="cloud-field"><strong>Often means:</strong> Steady, prolonged rain or snow - the least dramatic-looking cloud, but the one that actually soaks you all day.</div>
+      </div></div>
+    </div>
+    <div class="family-section">
+      <h2 class="family-title">Low cloud</h2>
+      <div class="cloud-grid">
+      <div class="cloud-card" id="cloud-stratocumulus">
+        <div class="cloud-card-head">
+          <div>
+            <span class="cloud-name">Stratocumulus</span>
+            <span class="cloud-abbr">Sc</span>
+          </div>
+          <button class="learn-toggle" data-cloud-id="stratocumulus" type="button">Mark as spotted</button>
+        </div>
+        <div class="cloud-altitude">Surface-2,000 m &middot; Water droplets</div>
+        <div class="cloud-field"><strong>Look for:</strong> Low, lumpy grey-and-white patches or rolls, usually with some blue sky breaking through between them.</div>
+        <div class="cloud-field"><strong>Often means:</strong> The everyday “bit cloudy” sky - generally dry, maybe the odd spot of light drizzle.</div>
+      </div>
+      <div class="cloud-card" id="cloud-stratus">
+        <div class="cloud-card-head">
+          <div>
+            <span class="cloud-name">Stratus</span>
+            <span class="cloud-abbr">St</span>
+          </div>
+          <button class="learn-toggle" data-cloud-id="stratus" type="button">Mark as spotted</button>
+        </div>
+        <div class="cloud-altitude">Surface-2,000 m &middot; Water droplets</div>
+        <div class="cloud-field"><strong>Look for:</strong> A flat, featureless grey layer, often low enough to sit on hilltops as mist or fog.</div>
+        <div class="cloud-field"><strong>Often means:</strong> Drizzle, fine mist, or murky, dull conditions rather than heavy rain.</div>
+      </div>
+      <div class="cloud-card" id="cloud-cumulus">
+        <div class="cloud-card-head">
+          <div>
+            <span class="cloud-name">Cumulus</span>
+            <span class="cloud-abbr">Cu</span>
+          </div>
+          <button class="learn-toggle" data-cloud-id="cumulus" type="button">Mark as spotted</button>
+        </div>
+        <div class="cloud-altitude">Surface-2,000 m base (can build much higher) &middot; Water droplets</div>
+        <div class="cloud-field"><strong>Look for:</strong> Puffy, cotton-wool clouds with a flat base and a bulging, sunlit top - the classic “fair weather” cloud drawn in every kid's sky.</div>
+        <div class="cloud-field"><strong>Often means:</strong> Fine weather while small. If they keep growing taller through the day (“cumulus congestus”), showers or storms can follow by afternoon.</div>
+      </div></div>
+    </div>
+    <div class="family-section">
+      <h2 class="family-title">Vertical cloud</h2>
+      <div class="cloud-grid">
+      <div class="cloud-card" id="cloud-cumulonimbus">
+        <div class="cloud-card-head">
+          <div>
+            <span class="cloud-name">Cumulonimbus</span>
+            <span class="cloud-abbr">Cb</span>
+          </div>
+          <button class="learn-toggle" data-cloud-id="cumulonimbus" type="button">Mark as spotted</button>
+        </div>
+        <div class="cloud-altitude">Surface up to 12,000 m+ (a single towering cloud) &middot; Water droplets low down, ice at the top</div>
+        <div class="cloud-field"><strong>Look for:</strong> A huge, dark-based tower, often flattening into a wide anvil shape at the top where it hits the upper atmosphere.</div>
+        <div class="cloud-field"><strong>Often means:</strong> Thunderstorms, heavy rain, hail, and lightning - the one cloud worth taking seriously.</div>
+      </div></div>
+    </div>
+
+  <div class="footer-note">
+    Live guesses are a rough, for-fun heuristic from each location's current weather code and cloud cover -
+    always trust your own eyes over the algorithm. Spotted checkmarks are saved only on this device.
+  </div>
+</div>
+<script>
+(function () {
+  var KEY = 'clearline_clouds_learned_v1';
+  var total = 10;
+  function loadLearned() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+  }
+  function saveLearned(arr) {
+    try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch (e) { /* private mode etc - ok to lose it */ }
+  }
+  var learned = loadLearned();
+
+  function updateProgress() {
+    var bar = document.getElementById('progress-bar');
+    var label = document.getElementById('progress-label');
+    var pct = total ? Math.round((learned.length / total) * 100) : 0;
+    if (bar) bar.style.width = pct + '%';
+    if (label) label.textContent = learned.length + ' of ' + total + ' cloud types logged';
+  }
+
+  var toggles = document.querySelectorAll('.learn-toggle');
+  for (var i = 0; i < toggles.length; i++) {
+    (function (btn) {
+      var id = btn.getAttribute('data-cloud-id');
+      var cardEl = document.getElementById('cloud-' + id);
+      function refresh() {
+        var on = learned.indexOf(id) !== -1;
+        btn.classList.toggle('learned', on);
+        btn.textContent = on ? '\u2713 Spotted this one' : 'Mark as spotted';
+        if (cardEl) cardEl.classList.toggle('learned-highlight', on);
+      }
+      refresh();
+      btn.addEventListener('click', function () {
+        var idx = learned.indexOf(id);
+        if (idx === -1) learned.push(id); else learned.splice(idx, 1);
+        saveLearned(learned);
+        refresh();
+        updateProgress();
+      });
+    })(toggles[i]);
+  }
+  updateProgress();
+})();
+</script>
+</body>
+</html>
