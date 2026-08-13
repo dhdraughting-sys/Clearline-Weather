@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dawlish Warren Weather</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#1F3864">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Weather">
+<style>
+  :root{ --navy:#1F3864; --navy-dark:#152747; --accent:#C0392B; --ink:#22303F; --muted:#5C6B7A; --bg:#FAFBFC; --white:#fff; --line:#DCE6F1; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;padding-bottom:40px;}
+  .wrap{max-width:900px;margin:0 auto;padding:20px 16px;}
+  .eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+  .title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  h1{font-size:1.5rem;color:var(--navy);margin:4px 0 2px;}
+  .loc-switcher{display:flex;align-items:center;gap:6px;background:var(--white);border:1px solid var(--line);border-radius:10px;padding:6px 10px;}
+  .loc-switcher-icon{font-size:.9rem;}
+  .loc-switcher select{border:0;background:transparent;font-family:inherit;font-size:.85rem;font-weight:600;color:var(--navy);padding:2px 4px;max-width:180px;}
+  .loc-switcher select:focus{outline:2px solid var(--navy);outline-offset:2px;}
+  .updated{font-size:.8rem;color:var(--muted);margin-bottom:18px;}
+  .updated a{color:var(--navy);font-weight:600;text-decoration:none;}
+  .updated a:hover{text-decoration:underline;}
+
+  .now-card{background:linear-gradient(135deg,var(--navy),var(--navy-dark));color:#fff;border-radius:16px;padding:26px;margin-bottom:16px;}
+  .now-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+  .now-temp{font-size:3rem;font-weight:800;}
+  .now-cond{font-size:1rem;opacity:.9;}
+  .now-emoji{font-size:2.2rem;}
+  .now-sub{font-size:.85rem;opacity:.8;margin-top:4px;}
+
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:20px;}
+  .stat{background:rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;}
+  .stat .label{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;opacity:.7;}
+  .stat .val{font-size:1.05rem;font-weight:700;margin-top:2px;}
+  @media (min-width:640px){ .grid{grid-template-columns:repeat(4,1fr);} }
+
+  .card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px;}
+  .card h2{font-size:.95rem;color:var(--navy);margin-bottom:10px;}
+  .frost-banner{display:flex;align-items:flex-start;gap:12px;background:#EAF4FF;border:1px solid #BBDBFA;border-left:4px solid #2E6DA4;border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:.85rem;color:var(--ink);}
+  .frost-icon{font-size:1.4rem;line-height:1;}
+  .stat.light{background:var(--bg);border:1px solid var(--line);}
+  .stat.light .label{color:var(--muted);opacity:1;}
+  .stat.light .val{color:var(--ink);}
+  .stat-grid-4{grid-template-columns:repeat(2,1fr);}
+  .stat-grid-2{grid-template-columns:repeat(2,1fr);}
+  @media (min-width:640px){ .stat-grid-4{grid-template-columns:repeat(4,1fr);} }
+  .windrose{width:100%;max-width:280px;height:auto;display:block;margin:0 auto;}
+  .outlook-card{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--navy);border-radius:14px;padding:18px 20px;margin-bottom:16px;}
+  .outlook-card .eyebrow-small{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+  .outlook-card h2{font-size:1.15rem;color:var(--navy);margin:4px 0 6px;}
+  .outlook-card p{font-size:.88rem;color:var(--ink);}
+  .outlook-card .outlook-note{font-size:.72rem;color:var(--muted);margin-top:10px;}
+  .radar-frame{width:100%;border:0;border-radius:10px;display:block;aspect-ratio:16/10;}
+  .sparkline{width:100%;height:auto;}
+  .chart-label{font-size:9px;fill:var(--muted);}
+  .chart-axis-label{font-size:10px;fill:var(--muted);}
+  .chart-stats{display:flex;flex-wrap:wrap;gap:14px;font-size:.75rem;color:var(--muted);margin-bottom:10px;}
+  .chart-stats strong{color:var(--navy);font-size:.85rem;margin-left:3px;}
+  .no-data{font-size:.85rem;color:var(--muted);padding:20px 0;text-align:center;}
+
+  table.history{width:100%;border-collapse:collapse;font-size:.82rem;}
+  table.history th{text-align:left;color:var(--navy);font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:2px solid var(--line);}
+  table.history td{padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  table.history tbody tr:nth-child(even){background:var(--bg);}
+  .table-wrap{overflow-x:auto;}
+  .table-note{font-size:.72rem;color:var(--muted);margin-top:10px;}
+
+  .footer-note{font-size:.75rem;color:var(--muted);text-align:center;margin-top:20px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="eyebrow">Personal Weather Log</span>
+  <div class="title-row">
+    <h1>Dawlish Warren</h1>
+    <div class="loc-switcher">
+      <span class="loc-switcher-icon">📍</span>
+      <select onchange="if (this.value) window.location.href = this.value;" aria-label="Switch location">
+        <option value="index.html">Meriden, CV7 7HT</option><option value="dashboard_heathrow.html">London Heathrow</option><option value="dashboard_dawlish-warren.html" selected>Dawlish Warren</option><option value="dashboard_inverness.html">Inverness</option><option value="dashboard_la-rochelle.html">La Rochelle, France</option>
+      </select>
+    </div>
+  </div>
+  <div class="updated">Last updated Thu 13 Aug 2026, 22:22 &middot; <a href="history_dawlish-warren.html">View full history &rarr;</a> &middot; <a href="reports_dawlish-warren.html">&#128196; Reports</a> &middot; <a href="globe.html">&#127760; Cloud Globe</a></div>
+
+  
+
+  <div class="now-card">
+    <div class="now-top">
+      <div>
+        <div class="now-temp">21.8°C</div>
+        <div class="now-cond">☀️ Clear sky &middot; feels like 21.9°C</div>
+      </div>
+      <div class="now-emoji">☀️</div>
+    </div>
+    <div class="now-sub">Pressure trend: ▶ Steady (+0.0 hPa / 3h)</div>
+    <div class="grid">
+      <div class="stat"><div class="label">Pressure</div><div class="val">1020.3 hPa</div></div>
+      <div class="stat"><div class="label">Humidity</div><div class="val">82%</div></div>
+      <div class="stat"><div class="label">Dew point</div><div class="val">18.6°C</div></div>
+      <div class="stat"><div class="label">Feels like (calc)</div><div class="val">21.8°C</div></div>
+      <div class="stat"><div class="label">Wind</div><div class="val">20.9 km/h NNW</div></div>
+      <div class="stat"><div class="label">Gusts</div><div class="val">37.8 km/h</div></div>
+      <div class="stat"><div class="label">Rain</div><div class="val">0.0 mm</div></div>
+      <div class="stat"><div class="label">Snowfall</div><div class="val">0.0 cm</div></div>
+      <div class="stat"><div class="label">Cloud cover</div><div class="val">0%</div></div>
+      <div class="stat"><div class="label">UV index</div><div class="val">0.0</div></div>
+      <div class="stat"><div class="label">Visibility</div><div class="val">28.0 km</div></div>
+      <div class="stat"><div class="label">Sunrise</div><div class="val">🌅 05:58</div></div>
+      <div class="stat"><div class="label">Sunset</div><div class="val">🌇 20:38</div></div>
+      <div class="stat"><div class="label">Air quality</div><div class="val" style="color:#4CAF50">20 · Good</div></div>
+    </div>
+  </div>
+
+  <div class="outlook-card">
+      <span class="eyebrow-small">Next few hours</span>
+      <h2>Little change expected</h2>
+      <p>Pressure is steady - conditions should stay much the same over the next few hours.</p>
+      <div class="outlook-note">Based on your own station's pressure trend (+0.0 hPa / 3h) — a short-range estimate, not a multi-day forecast.</div>
+    </div>
+
+  <div class="card">
+    <h2>Live rain radar</h2>
+    <iframe class="radar-frame" src="https://embed.windy.com/embed2.html?lat=50.5931&lon=-3.4227&zoom=8&level=surface&overlay=radar&menu=&message=true&marker=true&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1" loading="lazy" title="Live rain radar"></iframe>
+    <div class="table-note">Live radar from Windy.com, not generated from your own readings — useful for seeing rain approaching on the map.</div>
+  </div>
+
+  <div class="card">
+      <h2>Rainfall totals</h2>
+      <div class="grid stat-grid-4">
+        <div class="stat light"><div class="label">Today</div><div class="val">0.0 mm</div></div>
+        <div class="stat light"><div class="label">Last 7 days</div><div class="val">0.0 mm</div></div>
+        <div class="stat light"><div class="label">This month</div><div class="val">0.0 mm</div></div>
+        <div class="stat light"><div class="label">This year</div><div class="val">0.0 mm</div></div>
+      </div>
+    </div>
+
+  <div class="card">
+      <h2>Moon &amp; daylight</h2>
+      <div class="grid stat-grid-2">
+        <div class="stat light"><div class="label">Moon phase</div><div class="val">🌑 New Moon</div></div>
+        <div class="stat light"><div class="label">Daylight today</div><div class="val">14h 40m</div></div>
+      </div>
+    </div>
+
+  <div class="card">
+      <h2>Prevailing wind</h2>
+      <svg viewBox="0 0 240 240" class="windrose">
+      <circle cx="120.0" cy="120.0" r="94.0" fill="none" stroke="#DCE6F1" stroke-width="1" />
+      <circle cx="120.0" cy="120.0" r="47.0" fill="none" stroke="#DCE6F1" stroke-width="1" />
+      <polygon points="120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 84.0,33.2" fill="rgba(31,56,100,.22)" stroke="#1F3864" stroke-width="2" />
+      <text x="120.0" y="16.0" class="chart-label" text-anchor="middle">N</text><text x="228.0" y="124.0" class="chart-label" text-anchor="middle">E</text><text x="120.0" y="232.0" class="chart-label" text-anchor="middle">S</text><text x="12.0" y="124.0" class="chart-label" text-anchor="middle">W</text>
+    </svg>
+      <div class="table-note">Based on 2 readings over this period — direction the wind was blowing from.</div>
+    </div>
+
+  <div class="card">
+    <h2>Temperature — last 48h</h2>
+    <div class="chart-stats"><span>Min <strong>21.7°C</strong></span><span>Avg <strong>21.8°C</strong></span><span>Max <strong>21.8°C</strong></span><span>Now <strong>21.7°C</strong></span></div><svg viewBox="0 0 640 220" class="sparkline" preserveAspectRatio="xMidYMid meet">
+      <polygon points="58.0,16.0 626.0,134.7 626.0,194.0 58.0,194.0" fill="#C0392B" opacity=".10" />
+      <line x1="58" y1="194.0" x2="626" y2="194.0" stroke="#E7EEF6" stroke-width="1" /><text x="50" y="197.0" class="chart-axis-label" text-anchor="end">21.7°C</text><line x1="58" y1="134.7" x2="626" y2="134.7" stroke="#E7EEF6" stroke-width="1" /><text x="50" y="137.7" class="chart-axis-label" text-anchor="end">21.7°C</text><line x1="58" y1="75.3" x2="626" y2="75.3" stroke="#E7EEF6" stroke-width="1" /><text x="50" y="78.3" class="chart-axis-label" text-anchor="end">21.8°C</text><line x1="58" y1="16.0" x2="626" y2="16.0" stroke="#E7EEF6" stroke-width="1" /><text x="50" y="19.0" class="chart-axis-label" text-anchor="end">21.8°C</text>
+      <line x1="58" y1="75.3" x2="626" y2="75.3" stroke="#C0392B" stroke-width="1.2" stroke-dasharray="4,3" opacity=".55" />
+      <polyline fill="none" stroke="#C0392B" stroke-width="2.2" points="58.0,16.0 626.0,134.7" />
+      <circle cx="626.0" cy="134.7" r="4" fill="#C0392B" />
+      <text x="58.0" y="214" class="chart-axis-label" text-anchor="middle">Thu 22:00</text><text x="626.0" y="214" class="chart-axis-label" text-anchor="middle">Thu 22:15</text>
+    </svg>
+  </div>
+  <div class="card">
+    <h2>Pressure — last 48h</h2>
+    <div class="chart-stats"><span>Min <strong>1020 hPa</strong></span><span>Avg <strong>1020 hPa</strong></span><span>Max <strong>1021 hPa</strong></span><span>Now <strong>1020 hPa</strong></span></div><svg viewBox="0 0 640 220" class="sparkline" preserveAspectRatio="xMidYMid meet">
+      <polygon points="58.0,158.4 626.0,158.4 626.0,194.0 58.0,194.0" fill="#1F3864" opacity=".10" />
+      <line x1="58" y1="194.0" x2="626" y2="194.0" stroke="#E7EEF6" stroke-width="1" /><text x="50" y="197.0" class="chart-axis-label" text-anchor="end">1020 hPa</text><line x1="58" y1="134.7" x2="626" y2="134.7" stroke="#E7EEF6" stroke-width="1" /><text x="50" y="137.7" class="chart-axis-label" text-anchor="end">1020 hPa</text><line x1="58" y1="75.3" x2="626" y2="75.3" stroke="#E7EEF6" stroke-width="1" /><text x="50" y="78.3" class="chart-axis-label" text-anchor="end">1021 hPa</text><line x1="58" y1="16.0" x2="626" y2="16.0" stroke="#E7EEF6" stroke-width="1" /><text x="50" y="19.0" class="chart-axis-label" text-anchor="end">1022 hPa</text>
+      <line x1="58" y1="158.4" x2="626" y2="158.4" stroke="#1F3864" stroke-width="1.2" stroke-dasharray="4,3" opacity=".55" />
+      <polyline fill="none" stroke="#1F3864" stroke-width="2.2" points="58.0,158.4 626.0,158.4" />
+      <circle cx="626.0" cy="158.4" r="4" fill="#1F3864" />
+      <text x="58.0" y="214" class="chart-axis-label" text-anchor="middle">Thu 22:00</text><text x="626.0" y="214" class="chart-axis-label" text-anchor="middle">Thu 22:15</text>
+    </svg>
+  </div>
+  <div class="card">
+    <h2>Wind speed — last 48h</h2>
+    <div class="chart-stats"><span>Min <strong>20 km/h</strong></span><span>Avg <strong>21 km/h</strong></span><span>Max <strong>21 km/h</strong></span><span>Now <strong>20 km/h</strong></span></div><svg viewBox="0 0 640 220" class="sparkline" preserveAspectRatio="xMidYMid meet">
+      <polygon points="58.0,16.0 626.0,194.0 626.0,194.0 58.0,194.0" fill="#3E6FA6" opacity=".10" />
+      <line x1="58" y1="194.0" x2="626" y2="194.0" stroke="#E7EEF6" stroke-width="1" /><text x="50" y="197.0" class="chart-axis-label" text-anchor="end">20 km/h</text><line x1="58" y1="149.5" x2="626" y2="149.5" stroke="#E7EEF6" stroke-width="1" /><text x="50" y="152.5" class="chart-axis-label" text-anchor="end">21 km/h</text><line x1="58" y1="105.0" x2="626" y2="105.0" stroke="#E7EEF6" stroke-width="1" /><text x="50" y="108.0" class="chart-axis-label" text-anchor="end">21 km/h</text><line x1="58" y1="60.5" x2="626" y2="60.5" stroke="#E7EEF6" stroke-width="1" /><text x="50" y="63.5" class="chart-axis-label" text-anchor="end">21 km/h</text><line x1="58" y1="16.0" x2="626" y2="16.0" stroke="#E7EEF6" stroke-width="1" /><text x="50" y="19.0" class="chart-axis-label" text-anchor="end">21 km/h</text>
+      <line x1="58" y1="105.0" x2="626" y2="105.0" stroke="#3E6FA6" stroke-width="1.2" stroke-dasharray="4,3" opacity=".55" />
+      <polyline fill="none" stroke="#3E6FA6" stroke-width="2.2" points="58.0,16.0 626.0,194.0" />
+      <circle cx="626.0" cy="194.0" r="4" fill="#3E6FA6" />
+      <text x="58.0" y="214" class="chart-axis-label" text-anchor="middle">Thu 22:00</text><text x="626.0" y="214" class="chart-axis-label" text-anchor="middle">Thu 22:15</text>
+    </svg>
+  </div>
+
+  <div class="card">
+    <h2>Recent readings</h2>
+    <div class="table-wrap">
+      <table class="history">
+      <thead><tr><th>Time</th><th>Temp</th><th>Dew Pt</th><th>Pressure</th><th>Humidity</th><th>Wind</th><th>Rain</th><th>Snow</th></tr></thead>
+      <tbody><tr><td>Thu 22:15</td><td>☀️ 21.7°C</td><td>18.5°C</td><td>1020.3 hPa</td><td>82%</td><td>20.5 km/h NNW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 22:00</td><td>☀️ 21.8°C</td><td>18.4°C</td><td>1020.3 hPa</td><td>81%</td><td>20.9 km/h NNW</td><td>0.0 mm</td><td>0.0 cm</td></tr></tbody>
+    </table>
+    </div>
+    <div class="table-note">Showing the most recent 2 of 2 logged readings.</div>
+  </div>
+
+  <div class="footer-note">
+    Data: Open-Meteo.com (CC-BY 4.0) &middot; 2 readings logged &middot; captured locally, not connected to any website or hosting platform.
+  </div>
+</div>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function (err) {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+  var swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (swRefreshing) return;
+    swRefreshing = true;
+    window.location.reload();
+  });
+}
+</script>
+</body>
+</html>
