@@ -17,7 +17,12 @@
   body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;padding-bottom:40px;}
   .wrap{max-width:900px;margin:0 auto;padding:20px 16px;}
   .eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+  .title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
   h1{font-size:1.5rem;color:var(--navy);margin:4px 0 2px;}
+  .loc-switcher{display:flex;align-items:center;gap:6px;background:var(--white);border:1px solid var(--line);border-radius:10px;padding:6px 10px;}
+  .loc-switcher-icon{font-size:.9rem;}
+  .loc-switcher select{border:0;background:transparent;font-family:inherit;font-size:.85rem;font-weight:600;color:var(--navy);padding:2px 4px;max-width:180px;}
+  .loc-switcher select:focus{outline:2px solid var(--navy);outline-offset:2px;}
   .updated{font-size:.8rem;color:var(--muted);margin-bottom:18px;}
   .updated a{color:var(--navy);font-weight:600;text-decoration:none;}
   .updated a:hover{text-decoration:underline;}
@@ -54,6 +59,9 @@
   .radar-frame{width:100%;border:0;border-radius:10px;display:block;aspect-ratio:16/10;}
   .sparkline{width:100%;height:auto;}
   .chart-label{font-size:9px;fill:var(--muted);}
+  .chart-axis-label{font-size:10px;fill:var(--muted);}
+  .chart-stats{display:flex;flex-wrap:wrap;gap:14px;font-size:.75rem;color:var(--muted);margin-bottom:10px;}
+  .chart-stats strong{color:var(--navy);font-size:.85rem;margin-left:3px;}
   .no-data{font-size:.85rem;color:var(--muted);padding:20px 0;text-align:center;}
 
   table.history{width:100%;border-collapse:collapse;font-size:.82rem;}
@@ -69,35 +77,43 @@
 <body>
 <div class="wrap">
   <span class="eyebrow">Personal Weather Log</span>
-  <h1>Meriden, CV7 7HT</h1>
-  <div class="updated">Last updated Thu 13 Aug 2026, 21:45 &middot; <a href="history.html">View full history &rarr;</a></div>
+  <div class="title-row">
+    <h1>Meriden, CV7 7HT</h1>
+    <div class="loc-switcher">
+      <span class="loc-switcher-icon">📍</span>
+      <select onchange="if (this.value) window.location.href = this.value;" aria-label="Switch location">
+        <option value="index.html" selected>Meriden, CV7 7HT</option><option value="dashboard_heathrow.html">London Heathrow</option><option value="dashboard_dawlish-warren.html">Dawlish Warren</option><option value="dashboard_inverness.html">Inverness</option><option value="dashboard_la-rochelle.html">La Rochelle, France</option>
+      </select>
+    </div>
+  </div>
+  <div class="updated">Last updated Thu 13 Aug 2026, 22:00 &middot; <a href="history.html">View full history &rarr;</a> &middot; <a href="globe.html">&#127760; Cloud Globe</a></div>
 
   
 
   <div class="now-card">
     <div class="now-top">
       <div>
-        <div class="now-temp">26.1°C</div>
-        <div class="now-cond">☀️ Clear sky &middot; feels like 25.1°C</div>
+        <div class="now-temp">25.7°C</div>
+        <div class="now-cond">☀️ Clear sky &middot; feels like 24.6°C</div>
       </div>
       <div class="now-emoji">☀️</div>
     </div>
-    <div class="now-sub">Pressure trend: ▲ Rising (+1.5 hPa / 3h)</div>
+    <div class="now-sub">Pressure trend: ▲ Rising (+1.6 hPa / 3h)</div>
     <div class="grid">
-      <div class="stat"><div class="label">Pressure</div><div class="val">1018.3 hPa</div></div>
-      <div class="stat"><div class="label">Humidity</div><div class="val">44%</div></div>
+      <div class="stat"><div class="label">Pressure</div><div class="val">1018.4 hPa</div></div>
+      <div class="stat"><div class="label">Humidity</div><div class="val">45%</div></div>
       <div class="stat"><div class="label">Dew point</div><div class="val">12.9°C</div></div>
-      <div class="stat"><div class="label">Feels like (calc)</div><div class="val">26.1°C</div></div>
-      <div class="stat"><div class="label">Wind</div><div class="val">13.7 km/h NW</div></div>
-      <div class="stat"><div class="label">Gusts</div><div class="val">26.3 km/h</div></div>
+      <div class="stat"><div class="label">Feels like (calc)</div><div class="val">25.7°C</div></div>
+      <div class="stat"><div class="label">Wind</div><div class="val">14.0 km/h NW</div></div>
+      <div class="stat"><div class="label">Gusts</div><div class="val">26.6 km/h</div></div>
       <div class="stat"><div class="label">Rain</div><div class="val">0.0 mm</div></div>
       <div class="stat"><div class="label">Snowfall</div><div class="val">0.0 cm</div></div>
       <div class="stat"><div class="label">Cloud cover</div><div class="val">0%</div></div>
       <div class="stat"><div class="label">UV index</div><div class="val">0.0</div></div>
-      <div class="stat"><div class="label">Visibility</div><div class="val">23.0 km</div></div>
+      <div class="stat"><div class="label">Visibility</div><div class="val">25.8 km</div></div>
       <div class="stat"><div class="label">Sunrise</div><div class="val">🌅 05:46</div></div>
       <div class="stat"><div class="label">Sunset</div><div class="val">🌇 20:36</div></div>
-      <div class="stat"><div class="label">Air quality</div><div class="val" style="color:#FFC107">47 · Moderate</div></div>
+      <div class="stat"><div class="label">Air quality</div><div class="val" style="color:#FFC107">43 · Moderate</div></div>
     </div>
   </div>
 
@@ -105,7 +121,7 @@
       <span class="eyebrow-small">Next few hours</span>
       <h2>Improving conditions likely</h2>
       <p>Pressure is climbing - conditions should brighten or settle over the next few hours.</p>
-      <div class="outlook-note">Based on your own station's pressure trend (+1.5 hPa / 3h) — a short-range estimate, not a multi-day forecast.</div>
+      <div class="outlook-note">Based on your own station's pressure trend (+1.6 hPa / 3h) — a short-range estimate, not a multi-day forecast.</div>
     </div>
 
   <div class="card">
@@ -137,37 +153,43 @@
       <svg viewBox="0 0 240 240" class="windrose">
       <circle cx="120.0" cy="120.0" r="94.0" fill="none" stroke="#DCE6F1" stroke-width="1" />
       <circle cx="120.0" cy="120.0" r="47.0" fill="none" stroke="#DCE6F1" stroke-width="1" />
-      <polygon points="120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 153.2,153.2 156.0,206.8 120.0,214.0 106.5,152.6 111.7,128.3 65.7,142.5 84.8,120.0 109.1,115.5 86.8,86.8 120.0,120.0" fill="rgba(31,56,100,.22)" stroke="#1F3864" stroke-width="2" />
+      <polygon points="120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 120.0,120.0 153.2,153.2 156.0,206.8 120.0,214.0 106.5,152.6 111.7,128.3 65.7,142.5 84.8,120.0 109.1,115.5 78.5,78.5 120.0,120.0" fill="rgba(31,56,100,.22)" stroke="#1F3864" stroke-width="2" />
       <text x="120.0" y="16.0" class="chart-label" text-anchor="middle">N</text><text x="228.0" y="124.0" class="chart-label" text-anchor="middle">E</text><text x="120.0" y="232.0" class="chart-label" text-anchor="middle">S</text><text x="12.0" y="124.0" class="chart-label" text-anchor="middle">W</text>
     </svg>
-      <div class="table-note">Based on 37 readings over this period — direction the wind was blowing from.</div>
+      <div class="table-note">Based on 38 readings over this period — direction the wind was blowing from.</div>
     </div>
 
   <div class="card">
     <h2>Temperature — last 48h</h2>
-    <svg viewBox="0 0 560 120" class="sparkline" preserveAspectRatio="none">
-      <polyline fill="none" stroke="#C0392B" stroke-width="2" points="10.0,93.6 25.0,110.0 40.0,69.6 55.0,37.7 70.0,24.6 85.0,32.1 100.0,72.0 115.0,92.6 130.0,93.6 145.0,42.4 160.0,18.9 175.0,11.9 190.0,10.0 205.0,10.5 220.0,10.5 235.0,11.9 250.0,11.9 265.0,12.3 280.0,12.3 295.0,11.4 310.0,11.9 325.0,12.8 340.0,13.8 355.0,15.6 370.0,17.5 385.0,19.9 400.0,23.1 415.0,23.6 430.0,26.9 445.0,30.7 460.0,35.4 475.0,40.5 490.0,45.7 505.0,49.4 520.0,52.3 535.0,54.1 550.0,56.0" />
-      <circle cx="550.0" cy="56.0" r="3.5" fill="#C0392B" />
-      <text x="10" y="14" class="chart-label">35.9°C</text>
-      <text x="10" y="118" class="chart-label">14.6°C</text>
+    <div class="chart-stats"><span>Min <strong>14.6°C</strong></span><span>Avg <strong>30.3°C</strong></span><span>Max <strong>35.9°C</strong></span><span>Now <strong>25.7°C</strong></span></div><svg viewBox="0 0 640 220" class="sparkline" preserveAspectRatio="xMidYMid meet">
+      <polygon points="46.0,145.9 61.7,166.7 77.4,115.7 93.0,75.3 108.7,58.7 124.4,68.2 140.1,118.6 155.7,144.8 171.4,145.9 187.1,81.3 202.8,51.6 218.4,42.7 234.1,40.3 249.8,40.9 265.5,40.9 281.1,42.7 296.8,42.7 312.5,43.3 328.2,43.3 343.8,42.1 359.5,42.7 375.2,43.9 390.9,45.1 406.5,47.4 422.2,49.8 437.9,52.8 453.6,56.9 469.2,57.5 484.9,61.7 500.6,66.4 516.3,72.4 531.9,78.9 547.6,85.4 563.3,90.2 579.0,93.7 594.6,96.1 610.3,98.5 626.0,100.8 626.0,194.0 46.0,194.0" fill="#C0392B" opacity=".10" />
+      <line x1="46" y1="194.0" x2="626" y2="194.0" stroke="#E7EEF6" stroke-width="1" /><text x="38" y="197.0" class="chart-axis-label" text-anchor="end">10°C</text><line x1="46" y1="134.7" x2="626" y2="134.7" stroke="#E7EEF6" stroke-width="1" /><text x="38" y="137.7" class="chart-axis-label" text-anchor="end">20°C</text><line x1="46" y1="75.3" x2="626" y2="75.3" stroke="#E7EEF6" stroke-width="1" /><text x="38" y="78.3" class="chart-axis-label" text-anchor="end">30°C</text><line x1="46" y1="16.0" x2="626" y2="16.0" stroke="#E7EEF6" stroke-width="1" /><text x="38" y="19.0" class="chart-axis-label" text-anchor="end">40°C</text>
+      <line x1="46" y1="73.5" x2="626" y2="73.5" stroke="#C0392B" stroke-width="1.2" stroke-dasharray="4,3" opacity=".55" />
+      <polyline fill="none" stroke="#C0392B" stroke-width="2.2" points="46.0,145.9 61.7,166.7 77.4,115.7 93.0,75.3 108.7,58.7 124.4,68.2 140.1,118.6 155.7,144.8 171.4,145.9 187.1,81.3 202.8,51.6 218.4,42.7 234.1,40.3 249.8,40.9 265.5,40.9 281.1,42.7 296.8,42.7 312.5,43.3 328.2,43.3 343.8,42.1 359.5,42.7 375.2,43.9 390.9,45.1 406.5,47.4 422.2,49.8 437.9,52.8 453.6,56.9 469.2,57.5 484.9,61.7 500.6,66.4 516.3,72.4 531.9,78.9 547.6,85.4 563.3,90.2 579.0,93.7 594.6,96.1 610.3,98.5 626.0,100.8" />
+      <circle cx="626.0" cy="100.8" r="4" fill="#C0392B" />
+      <text x="46.0" y="214" class="chart-axis-label" text-anchor="middle">Wed 00:09</text><text x="234.1" y="214" class="chart-axis-label" text-anchor="middle">Thu 15:30</text><text x="437.9" y="214" class="chart-axis-label" text-anchor="middle">Thu 19:00</text><text x="626.0" y="214" class="chart-axis-label" text-anchor="middle">Thu 22:00</text>
     </svg>
   </div>
   <div class="card">
     <h2>Pressure — last 48h</h2>
-    <svg viewBox="0 0 560 120" class="sparkline" preserveAspectRatio="none">
-      <polyline fill="none" stroke="#1F3864" stroke-width="2" points="10.0,10.0 25.0,18.2 40.0,22.3 55.0,29.2 70.0,48.4 85.0,55.2 100.0,34.7 115.0,42.9 130.0,42.9 145.0,52.5 160.0,66.2 175.0,81.2 190.0,89.5 205.0,94.9 220.0,97.7 235.0,97.7 250.0,100.4 265.0,101.8 280.0,103.2 295.0,107.3 310.0,108.6 325.0,110.0 340.0,110.0 355.0,108.6 370.0,108.6 385.0,108.6 400.0,107.3 415.0,107.3 430.0,105.9 445.0,104.5 460.0,101.8 475.0,96.3 490.0,92.2 505.0,92.2 520.0,89.5 535.0,88.1 550.0,88.1" />
-      <circle cx="550.0" cy="88.1" r="3.5" fill="#1F3864" />
-      <text x="10" y="14" class="chart-label">1024.0 hPa</text>
-      <text x="10" y="118" class="chart-label">1016.7 hPa</text>
+    <div class="chart-stats"><span>Min <strong>1017 hPa</strong></span><span>Avg <strong>1019 hPa</strong></span><span>Max <strong>1024 hPa</strong></span><span>Now <strong>1018 hPa</strong></span></div><svg viewBox="0 0 640 220" class="sparkline" preserveAspectRatio="xMidYMid meet">
+      <polygon points="46.0,16.0 61.7,29.4 77.4,36.0 93.0,47.1 108.7,78.3 124.4,89.4 140.1,56.0 155.7,69.4 171.4,69.4 187.1,85.0 202.8,107.2 218.4,131.7 234.1,145.0 249.8,154.0 265.5,158.4 281.1,158.4 296.8,162.9 312.5,165.1 328.2,167.3 343.8,174.0 359.5,176.2 375.2,178.4 390.9,178.4 406.5,176.2 422.2,176.2 437.9,176.2 453.6,174.0 469.2,174.0 484.9,171.8 500.6,169.5 516.3,165.1 531.9,156.2 547.6,149.5 563.3,149.5 579.0,145.0 594.6,142.8 610.3,142.8 626.0,140.6 626.0,194.0 46.0,194.0" fill="#1F3864" opacity=".10" />
+      <line x1="46" y1="194.0" x2="626" y2="194.0" stroke="#E7EEF6" stroke-width="1" /><text x="38" y="197.0" class="chart-axis-label" text-anchor="end">1016 hPa</text><line x1="46" y1="149.5" x2="626" y2="149.5" stroke="#E7EEF6" stroke-width="1" /><text x="38" y="152.5" class="chart-axis-label" text-anchor="end">1018 hPa</text><line x1="46" y1="105.0" x2="626" y2="105.0" stroke="#E7EEF6" stroke-width="1" /><text x="38" y="108.0" class="chart-axis-label" text-anchor="end">1020 hPa</text><line x1="46" y1="60.5" x2="626" y2="60.5" stroke="#E7EEF6" stroke-width="1" /><text x="38" y="63.5" class="chart-axis-label" text-anchor="end">1022 hPa</text><line x1="46" y1="16.0" x2="626" y2="16.0" stroke="#E7EEF6" stroke-width="1" /><text x="38" y="19.0" class="chart-axis-label" text-anchor="end">1024 hPa</text>
+      <line x1="46" y1="132.7" x2="626" y2="132.7" stroke="#1F3864" stroke-width="1.2" stroke-dasharray="4,3" opacity=".55" />
+      <polyline fill="none" stroke="#1F3864" stroke-width="2.2" points="46.0,16.0 61.7,29.4 77.4,36.0 93.0,47.1 108.7,78.3 124.4,89.4 140.1,56.0 155.7,69.4 171.4,69.4 187.1,85.0 202.8,107.2 218.4,131.7 234.1,145.0 249.8,154.0 265.5,158.4 281.1,158.4 296.8,162.9 312.5,165.1 328.2,167.3 343.8,174.0 359.5,176.2 375.2,178.4 390.9,178.4 406.5,176.2 422.2,176.2 437.9,176.2 453.6,174.0 469.2,174.0 484.9,171.8 500.6,169.5 516.3,165.1 531.9,156.2 547.6,149.5 563.3,149.5 579.0,145.0 594.6,142.8 610.3,142.8 626.0,140.6" />
+      <circle cx="626.0" cy="140.6" r="4" fill="#1F3864" />
+      <text x="46.0" y="214" class="chart-axis-label" text-anchor="middle">Wed 00:09</text><text x="234.1" y="214" class="chart-axis-label" text-anchor="middle">Thu 15:30</text><text x="437.9" y="214" class="chart-axis-label" text-anchor="middle">Thu 19:00</text><text x="626.0" y="214" class="chart-axis-label" text-anchor="middle">Thu 22:00</text>
     </svg>
   </div>
   <div class="card">
     <h2>Wind speed — last 48h</h2>
-    <svg viewBox="0 0 560 120" class="sparkline" preserveAspectRatio="none">
-      <polyline fill="none" stroke="#3E6FA6" stroke-width="2" points="10.0,13.5 25.0,97.8 40.0,66.5 55.0,63.0 70.0,94.3 85.0,63.0 100.0,82.2 115.0,100.4 130.0,110.0 145.0,76.1 160.0,31.7 175.0,22.2 190.0,29.1 205.0,25.7 220.0,22.2 235.0,22.2 250.0,25.7 265.0,22.2 280.0,16.1 295.0,16.1 310.0,10.0 325.0,10.0 340.0,16.1 355.0,41.3 370.0,37.8 385.0,31.7 400.0,19.6 415.0,41.3 430.0,44.8 445.0,44.8 460.0,44.8 475.0,41.3 490.0,37.8 505.0,37.8 520.0,57.0 535.0,50.9 550.0,47.4" />
-      <circle cx="550.0" cy="47.4" r="3.5" fill="#3E6FA6" />
-      <text x="10" y="14" class="chart-label">18.0 km/h</text>
-      <text x="10" y="118" class="chart-label">6.5 km/h</text>
+    <div class="chart-stats"><span>Min <strong>6 km/h</strong></span><span>Avg <strong>14 km/h</strong></span><span>Max <strong>18 km/h</strong></span><span>Now <strong>14 km/h</strong></span></div><svg viewBox="0 0 640 220" class="sparkline" preserveAspectRatio="xMidYMid meet">
+      <polygon points="46.0,44.5 61.7,159.6 77.4,116.9 93.0,112.1 108.7,154.8 124.4,112.1 140.1,138.2 155.7,163.1 171.4,176.2 187.1,129.9 202.8,69.4 218.4,56.3 234.1,65.8 249.8,61.1 265.5,56.3 281.1,56.3 296.8,61.1 312.5,56.3 328.2,48.0 343.8,48.0 359.5,39.7 375.2,39.7 390.9,48.0 406.5,82.5 422.2,77.7 437.9,69.4 453.6,52.8 469.2,82.5 484.9,87.2 500.6,87.2 516.3,87.2 531.9,82.5 547.6,77.7 563.3,77.7 579.0,103.8 594.6,95.5 610.3,90.8 626.0,87.2 626.0,194.0 46.0,194.0" fill="#3E6FA6" opacity=".10" />
+      <line x1="46" y1="194.0" x2="626" y2="194.0" stroke="#E7EEF6" stroke-width="1" /><text x="38" y="197.0" class="chart-axis-label" text-anchor="end">5 km/h</text><line x1="46" y1="134.7" x2="626" y2="134.7" stroke="#E7EEF6" stroke-width="1" /><text x="38" y="137.7" class="chart-axis-label" text-anchor="end">10 km/h</text><line x1="46" y1="75.3" x2="626" y2="75.3" stroke="#E7EEF6" stroke-width="1" /><text x="38" y="78.3" class="chart-axis-label" text-anchor="end">15 km/h</text><line x1="46" y1="16.0" x2="626" y2="16.0" stroke="#E7EEF6" stroke-width="1" /><text x="38" y="19.0" class="chart-axis-label" text-anchor="end">20 km/h</text>
+      <line x1="46" y1="85.7" x2="626" y2="85.7" stroke="#3E6FA6" stroke-width="1.2" stroke-dasharray="4,3" opacity=".55" />
+      <polyline fill="none" stroke="#3E6FA6" stroke-width="2.2" points="46.0,44.5 61.7,159.6 77.4,116.9 93.0,112.1 108.7,154.8 124.4,112.1 140.1,138.2 155.7,163.1 171.4,176.2 187.1,129.9 202.8,69.4 218.4,56.3 234.1,65.8 249.8,61.1 265.5,56.3 281.1,56.3 296.8,61.1 312.5,56.3 328.2,48.0 343.8,48.0 359.5,39.7 375.2,39.7 390.9,48.0 406.5,82.5 422.2,77.7 437.9,69.4 453.6,52.8 469.2,82.5 484.9,87.2 500.6,87.2 516.3,87.2 531.9,82.5 547.6,77.7 563.3,77.7 579.0,103.8 594.6,95.5 610.3,90.8 626.0,87.2" />
+      <circle cx="626.0" cy="87.2" r="4" fill="#3E6FA6" />
+      <text x="46.0" y="214" class="chart-axis-label" text-anchor="middle">Wed 00:09</text><text x="234.1" y="214" class="chart-axis-label" text-anchor="middle">Thu 15:30</text><text x="437.9" y="214" class="chart-axis-label" text-anchor="middle">Thu 19:00</text><text x="626.0" y="214" class="chart-axis-label" text-anchor="middle">Thu 22:00</text>
     </svg>
   </div>
 
@@ -176,14 +198,14 @@
     <div class="table-wrap">
       <table class="history">
       <thead><tr><th>Time</th><th>Temp</th><th>Dew Pt</th><th>Pressure</th><th>Humidity</th><th>Wind</th><th>Rain</th><th>Snow</th></tr></thead>
-      <tbody><tr><td>Thu 21:45</td><td>☀️ 26.1°C</td><td>12.9°C</td><td>1018.3 hPa</td><td>44%</td><td>13.7 km/h NW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 21:30</td><td>☀️ 26.5°C</td><td>12.9°C</td><td>1018.3 hPa</td><td>43%</td><td>13.3 km/h NW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 21:15</td><td>🌤️ 26.9°C</td><td>13.3°C</td><td>1018.2 hPa</td><td>43%</td><td>12.6 km/h NW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 21:00</td><td>☀️ 27.5°C</td><td>13.1°C</td><td>1018.0 hPa</td><td>41%</td><td>14.8 km/h NW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 20:45</td><td>☀️ 28.3°C</td><td>13.4°C</td><td>1018.0 hPa</td><td>40%</td><td>14.8 km/h WNW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 20:30</td><td>☀️ 29.4°C</td><td>13.2°C</td><td>1017.7 hPa</td><td>37%</td><td>14.4 km/h W</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 20:15</td><td>☀️ 30.5°C</td><td>12.9°C</td><td>1017.3 hPa</td><td>34%</td><td>14.0 km/h W</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 20:00</td><td>☀️ 31.5°C</td><td>12.4°C</td><td>1017.1 hPa</td><td>31%</td><td>14.0 km/h WSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 19:45</td><td>☀️ 32.3°C</td><td>12.0°C</td><td>1017.0 hPa</td><td>29%</td><td>14.0 km/h WSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 19:30</td><td>☀️ 33.0°C</td><td>11.5°C</td><td>1016.9 hPa</td><td>27%</td><td>14.4 km/h SW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 19:15</td><td>☀️ 33.1°C</td><td>11.0°C</td><td>1016.9 hPa</td><td>26%</td><td>16.9 km/h W</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 19:00</td><td>☀️ 33.8°C</td><td>10.5°C</td><td>1016.8 hPa</td><td>24%</td><td>15.5 km/h WSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 18:45</td><td>☀️ 34.3°C</td><td>10.2°C</td><td>1016.8 hPa</td><td>23%</td><td>14.8 km/h WSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 18:30</td><td>🌤️ 34.7°C</td><td>10.5°C</td><td>1016.8 hPa</td><td>23%</td><td>14.4 km/h WSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 18:15</td><td>☀️ 35.1°C</td><td>10.2°C</td><td>1016.7 hPa</td><td>22%</td><td>17.3 km/h SSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 18:00</td><td>☀️ 35.3°C</td><td>9.7°C</td><td>1016.7 hPa</td><td>21%</td><td>18.0 km/h SSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 17:45</td><td>☀️ 35.5°C</td><td>9.8°C</td><td>1016.8 hPa</td><td>21%</td><td>18.0 km/h SSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 17:30</td><td>🌤️ 35.6°C</td><td>9.2°C</td><td>1016.9 hPa</td><td>20%</td><td>17.3 km/h S</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 17:15</td><td>🌤️ 35.4°C</td><td>9.7°C</td><td>1017.2 hPa</td><td>21%</td><td>17.3 km/h S</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 17:00</td><td>🌤️ 35.4°C</td><td>9.8°C</td><td>1017.3 hPa</td><td>21%</td><td>16.6 km/h S</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 16:45</td><td>⛅ 35.5°C</td><td>9.8°C</td><td>1017.4 hPa</td><td>21%</td><td>16.2 km/h S</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 16:30</td><td>⛅ 35.5°C</td><td>9.1°C</td><td>1017.6 hPa</td><td>20%</td><td>16.6 km/h S</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 16:15</td><td>⛅ 35.8°C</td><td>8.6°C</td><td>1017.6 hPa</td><td>19%</td><td>16.6 km/h SSE</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 16:01</td><td>⛅ 35.8°C</td><td>8.6°C</td><td>1017.8 hPa</td><td>19%</td><td>16.2 km/h SSE</td><td>0.0 mm</td><td>0.0 cm</td></tr></tbody>
+      <tbody><tr><td>Thu 22:00</td><td>☀️ 25.7°C</td><td>12.9°C</td><td>1018.4 hPa</td><td>45%</td><td>14.0 km/h NW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 21:45</td><td>☀️ 26.1°C</td><td>12.9°C</td><td>1018.3 hPa</td><td>44%</td><td>13.7 km/h NW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 21:30</td><td>☀️ 26.5°C</td><td>12.9°C</td><td>1018.3 hPa</td><td>43%</td><td>13.3 km/h NW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 21:15</td><td>🌤️ 26.9°C</td><td>13.3°C</td><td>1018.2 hPa</td><td>43%</td><td>12.6 km/h NW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 21:00</td><td>☀️ 27.5°C</td><td>13.1°C</td><td>1018.0 hPa</td><td>41%</td><td>14.8 km/h NW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 20:45</td><td>☀️ 28.3°C</td><td>13.4°C</td><td>1018.0 hPa</td><td>40%</td><td>14.8 km/h WNW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 20:30</td><td>☀️ 29.4°C</td><td>13.2°C</td><td>1017.7 hPa</td><td>37%</td><td>14.4 km/h W</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 20:15</td><td>☀️ 30.5°C</td><td>12.9°C</td><td>1017.3 hPa</td><td>34%</td><td>14.0 km/h W</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 20:00</td><td>☀️ 31.5°C</td><td>12.4°C</td><td>1017.1 hPa</td><td>31%</td><td>14.0 km/h WSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 19:45</td><td>☀️ 32.3°C</td><td>12.0°C</td><td>1017.0 hPa</td><td>29%</td><td>14.0 km/h WSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 19:30</td><td>☀️ 33.0°C</td><td>11.5°C</td><td>1016.9 hPa</td><td>27%</td><td>14.4 km/h SW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 19:15</td><td>☀️ 33.1°C</td><td>11.0°C</td><td>1016.9 hPa</td><td>26%</td><td>16.9 km/h W</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 19:00</td><td>☀️ 33.8°C</td><td>10.5°C</td><td>1016.8 hPa</td><td>24%</td><td>15.5 km/h WSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 18:45</td><td>☀️ 34.3°C</td><td>10.2°C</td><td>1016.8 hPa</td><td>23%</td><td>14.8 km/h WSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 18:30</td><td>🌤️ 34.7°C</td><td>10.5°C</td><td>1016.8 hPa</td><td>23%</td><td>14.4 km/h WSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 18:15</td><td>☀️ 35.1°C</td><td>10.2°C</td><td>1016.7 hPa</td><td>22%</td><td>17.3 km/h SSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 18:00</td><td>☀️ 35.3°C</td><td>9.7°C</td><td>1016.7 hPa</td><td>21%</td><td>18.0 km/h SSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 17:45</td><td>☀️ 35.5°C</td><td>9.8°C</td><td>1016.8 hPa</td><td>21%</td><td>18.0 km/h SSW</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 17:30</td><td>🌤️ 35.6°C</td><td>9.2°C</td><td>1016.9 hPa</td><td>20%</td><td>17.3 km/h S</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 17:15</td><td>🌤️ 35.4°C</td><td>9.7°C</td><td>1017.2 hPa</td><td>21%</td><td>17.3 km/h S</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 17:00</td><td>🌤️ 35.4°C</td><td>9.8°C</td><td>1017.3 hPa</td><td>21%</td><td>16.6 km/h S</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 16:45</td><td>⛅ 35.5°C</td><td>9.8°C</td><td>1017.4 hPa</td><td>21%</td><td>16.2 km/h S</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 16:30</td><td>⛅ 35.5°C</td><td>9.1°C</td><td>1017.6 hPa</td><td>20%</td><td>16.6 km/h S</td><td>0.0 mm</td><td>0.0 cm</td></tr><tr><td>Thu 16:15</td><td>⛅ 35.8°C</td><td>8.6°C</td><td>1017.6 hPa</td><td>19%</td><td>16.6 km/h SSE</td><td>0.0 mm</td><td>0.0 cm</td></tr></tbody>
     </table>
     </div>
-    <div class="table-note">Showing the most recent 24 of 37 logged readings.</div>
+    <div class="table-note">Showing the most recent 24 of 38 logged readings.</div>
   </div>
 
   <div class="footer-note">
-    Data: Open-Meteo.com (CC-BY 4.0) &middot; 37 readings logged &middot; captured locally, not connected to any website or hosting platform.
+    Data: Open-Meteo.com (CC-BY 4.0) &middot; 38 readings logged &middot; captured locally, not connected to any website or hosting platform.
   </div>
 </div>
 <script>
