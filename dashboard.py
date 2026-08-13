@@ -5,8 +5,12 @@ opened straight from a phone's file browser with no internet connection.
 """
 
 import datetime
+import math
 
-from weather_lib import WEATHER_CODE_LABELS, pressure_trend, now_local
+from weather_lib import (
+    WEATHER_CODE_LABELS, pressure_trend, barometric_outlook, now_local,
+    feels_like_calculated, aqi_label, moon_phase, rainfall_totals, wind_rose_data,
+)
 
 COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
            "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
@@ -120,10 +124,157 @@ def history_table(rows, limit=24):
     </table>'''.format(rows="".join(body_rows))
 
 
-def render(location_name, latest, rows, output_path):
+def outlook_card_html(rows):
+    """The 'next few hours' barometer-based outlook card, or a friendly
+    placeholder until there's enough pressure history to say anything."""
+    outlook = barometric_outlook(rows)
+    if not outlook:
+        return '''<div class="outlook-card">
+      <span class="eyebrow-small">Next few hours</span>
+      <h2>Not enough history yet</h2>
+      <p>Check back in a few hours once there's a pressure trend to read.</p>
+    </div>'''
+    return '''<div class="outlook-card">
+      <span class="eyebrow-small">Next few hours</span>
+      <h2>{headline}</h2>
+      <p>{detail}</p>
+      <div class="outlook-note">Based on your own station's pressure trend ({delta:+.1f} hPa / 3h) — a short-range estimate, not a multi-day forecast.</div>
+    </div>'''.format(
+        headline=outlook["headline"],
+        detail=outlook["detail"],
+        delta=outlook["delta_3h"],
+    )
+
+
+def frost_banner_html(frost_risk):
+    """A warning banner up top when there's ground frost risk in the next
+    24h — the sort of thing that actually matters if you're a gardener.
+    Returns an empty string (nothing rendered) when there's no risk."""
+    if not frost_risk or not frost_risk.get("at_risk"):
+        return ""
+    return '''<div class="frost-banner">
+      <span class="frost-icon">🥶</span>
+      <div>
+        <strong>Frost risk in the next 24 hours</strong>
+        <div>Forecast low of {temp}°C around {time} — worth covering tender plants or bringing pots in tonight.</div>
+      </div>
+    </div>'''.format(
+        temp=fnum(frost_risk.get("min_temp_c"), 1),
+        time=frost_risk.get("min_temp_time") or "overnight",
+    )
+
+
+def rainfall_card_html(all_rows):
+    """Rainfall totals card — today / last 7 days / this month / this year,
+    summed from the *full* log (not just the last 48h chart window)."""
+    totals = rainfall_totals(all_rows)
+    return '''<div class="card">
+      <h2>Rainfall totals</h2>
+      <div class="grid stat-grid-4">
+        <div class="stat light"><div class="label">Today</div><div class="val">{today} mm</div></div>
+        <div class="stat light"><div class="label">Last 7 days</div><div class="val">{week} mm</div></div>
+        <div class="stat light"><div class="label">This month</div><div class="val">{month} mm</div></div>
+        <div class="stat light"><div class="label">This year</div><div class="val">{year} mm</div></div>
+      </div>
+    </div>'''.format(**totals)
+
+
+def moon_daylight_card_html(latest):
+    """Moon phase (pure calculation) + how much daylight there is today,
+    worked out from the sunrise/sunset already fetched from Open-Meteo."""
+    name, emoji = moon_phase()
+    sunrise = latest.get("sunrise")
+    sunset = latest.get("sunset")
+    daylight = "—"
+    if sunrise and sunset:
+        try:
+            sr = datetime.datetime.strptime(sunrise, "%H:%M")
+            ss = datetime.datetime.strptime(sunset, "%H:%M")
+            mins = int((ss - sr).total_seconds() / 60)
+            daylight = "{}h {:02d}m".format(mins // 60, mins % 60)
+        except ValueError:
+            daylight = "—"
+    return '''<div class="card">
+      <h2>Moon &amp; daylight</h2>
+      <div class="grid stat-grid-2">
+        <div class="stat light"><div class="label">Moon phase</div><div class="val">{emoji} {name}</div></div>
+        <div class="stat light"><div class="label">Daylight today</div><div class="val">{daylight}</div></div>
+      </div>
+    </div>'''.format(emoji=emoji, name=name, daylight=daylight)
+
+
+def wind_rose_svg(rows, size=240):
+    """A hand-rolled SVG wind rose — how often the wind's blown from each
+    of 16 compass directions, as a filled radar-style polygon. No chart
+    library, same house style as the sparklines above."""
+    data = wind_rose_data(rows)
+    if not data:
+        return '<div class="no-data">Not enough wind direction data yet for a wind rose.</div>'
+
+    counts = data["counts"]
+    n = len(counts)
+    max_count = max(counts) or 1
+    cx = cy = size / 2
+    radius = size / 2 - 26
+
+    poly_points = []
+    for i, c in enumerate(counts):
+        bearing = math.radians(i * (360 / n))
+        r = (c / max_count) * radius
+        x = cx + r * math.sin(bearing)
+        y = cy - r * math.cos(bearing)
+        poly_points.append("{:.1f},{:.1f}".format(x, y))
+    polygon = " ".join(poly_points)
+
+    labels = []
+    for label, idx in (("N", 0), ("E", 4), ("S", 8), ("W", 12)):
+        bearing = math.radians(idx * (360 / n))
+        lx = cx + (radius + 14) * math.sin(bearing)
+        ly = cy - (radius + 14) * math.cos(bearing) + 4
+        labels.append('<text x="{:.1f}" y="{:.1f}" class="chart-label" text-anchor="middle">{}</text>'.format(lx, ly, label))
+
+    return '''<svg viewBox="0 0 {size} {size}" class="windrose">
+      <circle cx="{cx}" cy="{cy}" r="{radius}" fill="none" stroke="#DCE6F1" stroke-width="1" />
+      <circle cx="{cx}" cy="{cy}" r="{radius_half}" fill="none" stroke="#DCE6F1" stroke-width="1" />
+      <polygon points="{polygon}" fill="rgba(31,56,100,.22)" stroke="#1F3864" stroke-width="2" />
+      {labels}
+    </svg>'''.format(
+        size=size, cx=cx, cy=cy, radius=radius, radius_half=radius / 2,
+        polygon=polygon, labels="".join(labels),
+    )
+
+
+def wind_rose_card_html(rows):
+    data = wind_rose_data(rows)
+    note = (
+        "Based on {} readings over this period — direction the wind was blowing from.".format(data["total"])
+        if data else "Direction the wind was blowing from, once there's enough logged data."
+    )
+    return '''<div class="card">
+      <h2>Prevailing wind</h2>
+      {svg}
+      <div class="table-note">{note}</div>
+    </div>'''.format(svg=wind_rose_svg(rows), note=note)
+
+
+def render(location_name, latest, rows, output_path, lat=None, lon=None, all_rows=None):
+    if all_rows is None:
+        all_rows = rows  # falls back to the chart-window rows if the full log wasn't passed in
+
     trend_label, trend_delta = pressure_trend(rows)
     cond_label, cond_emoji = weather_label(latest.get("weather_code"))
     generated_at = now_local().strftime("%a %d %b %Y, %H:%M")
+    outlook_html = outlook_card_html(rows)
+    frost_html = frost_banner_html(latest.get("frost_risk"))
+    rainfall_html = rainfall_card_html(all_rows)
+    moon_daylight_html = moon_daylight_card_html(latest)
+    wind_rose_html = wind_rose_card_html(rows)
+
+    feels_like_calc = feels_like_calculated(
+        latest.get("temp_c"), latest.get("humidity_pct"), latest.get("wind_kph"),
+    )
+    aqi_val = latest.get("aqi")
+    aqi_text_label, aqi_colour = aqi_label(aqi_val)
 
     trend_arrow = {"Rising": "▲", "Falling": "▼", "Steady": "▶"}.get(trend_label, "")
     trend_text = (
@@ -174,6 +325,21 @@ def render(location_name, latest, rows, output_path):
 
   .card{{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px;}}
   .card h2{{font-size:.95rem;color:var(--navy);margin-bottom:10px;}}
+  .frost-banner{{display:flex;align-items:flex-start;gap:12px;background:#EAF4FF;border:1px solid #BBDBFA;border-left:4px solid #2E6DA4;border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:.85rem;color:var(--ink);}}
+  .frost-icon{{font-size:1.4rem;line-height:1;}}
+  .stat.light{{background:var(--bg);border:1px solid var(--line);}}
+  .stat.light .label{{color:var(--muted);opacity:1;}}
+  .stat.light .val{{color:var(--ink);}}
+  .stat-grid-4{{grid-template-columns:repeat(2,1fr);}}
+  .stat-grid-2{{grid-template-columns:repeat(2,1fr);}}
+  @media (min-width:640px){{ .stat-grid-4{{grid-template-columns:repeat(4,1fr);}} }}
+  .windrose{{width:100%;max-width:280px;height:auto;display:block;margin:0 auto;}}
+  .outlook-card{{background:var(--white);border:1px solid var(--line);border-left:4px solid var(--navy);border-radius:14px;padding:18px 20px;margin-bottom:16px;}}
+  .outlook-card .eyebrow-small{{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}}
+  .outlook-card h2{{font-size:1.15rem;color:var(--navy);margin:4px 0 6px;}}
+  .outlook-card p{{font-size:.88rem;color:var(--ink);}}
+  .outlook-card .outlook-note{{font-size:.72rem;color:var(--muted);margin-top:10px;}}
+  .radar-frame{{width:100%;border:0;border-radius:10px;display:block;aspect-ratio:16/10;}}
   .sparkline{{width:100%;height:auto;}}
   .chart-label{{font-size:9px;fill:var(--muted);}}
   .no-data{{font-size:.85rem;color:var(--muted);padding:20px 0;text-align:center;}}
@@ -194,6 +360,8 @@ def render(location_name, latest, rows, output_path):
   <h1>{location_name}</h1>
   <div class="updated">Last updated {generated_at} &middot; <a href="history.html">View full history &rarr;</a></div>
 
+  {frost_html}
+
   <div class="now-card">
     <div class="now-top">
       <div>
@@ -207,6 +375,7 @@ def render(location_name, latest, rows, output_path):
       <div class="stat"><div class="label">Pressure</div><div class="val">{pressure} hPa</div></div>
       <div class="stat"><div class="label">Humidity</div><div class="val">{humidity}%</div></div>
       <div class="stat"><div class="label">Dew point</div><div class="val">{dew_point}°C</div></div>
+      <div class="stat"><div class="label">Feels like (calc)</div><div class="val">{feels_like_calc}°C</div></div>
       <div class="stat"><div class="label">Wind</div><div class="val">{wind} km/h {wind_dir}</div></div>
       <div class="stat"><div class="label">Gusts</div><div class="val">{gusts} km/h</div></div>
       <div class="stat"><div class="label">Rain</div><div class="val">{rain} mm</div></div>
@@ -216,8 +385,23 @@ def render(location_name, latest, rows, output_path):
       <div class="stat"><div class="label">Visibility</div><div class="val">{visibility} km</div></div>
       <div class="stat"><div class="label">Sunrise</div><div class="val">🌅 {sunrise}</div></div>
       <div class="stat"><div class="label">Sunset</div><div class="val">🌇 {sunset}</div></div>
+      <div class="stat"><div class="label">Air quality</div><div class="val"{aqi_style}>{aqi_val}{aqi_label_suffix}</div></div>
     </div>
   </div>
+
+  {outlook_html}
+
+  <div class="card">
+    <h2>Live rain radar</h2>
+    <iframe class="radar-frame" src="https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&zoom=8&level=surface&overlay=radar&menu=&message=true&marker=true&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1" loading="lazy" title="Live rain radar"></iframe>
+    <div class="table-note">Live radar from Windy.com, not generated from your own readings — useful for seeing rain approaching on the map.</div>
+  </div>
+
+  {rainfall_html}
+
+  {moon_daylight_html}
+
+  {wind_rose_html}
 
   <div class="card">
     <h2>Temperature — last {hours}h</h2>
@@ -284,6 +468,17 @@ if ('serviceWorker' in navigator) {{
         ),
         sunrise=latest.get("sunrise") or "—",
         sunset=latest.get("sunset") or "—",
+        outlook_html=outlook_html,
+        frost_html=frost_html,
+        rainfall_html=rainfall_html,
+        moon_daylight_html=moon_daylight_html,
+        wind_rose_html=wind_rose_html,
+        feels_like_calc=fnum(feels_like_calc, 1),
+        aqi_val=fnum(aqi_val, 0) if aqi_val not in (None, "") else "—",
+        aqi_label_suffix=" · {}".format(aqi_text_label) if aqi_text_label else "",
+        aqi_style=' style="color:{}"'.format(aqi_colour) if aqi_colour else "",
+        lat=lat if lat is not None else 52.427,
+        lon=lon if lon is not None else -1.660,
         temp_chart=temp_chart,
         pressure_chart=pressure_chart,
         wind_chart=wind_chart,

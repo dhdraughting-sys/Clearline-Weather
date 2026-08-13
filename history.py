@@ -59,12 +59,64 @@ def daily_summary(rows):
             "wind_avg": (sum(winds) / len(winds)) if winds else None,
             "gust_max": max(gusts) if gusts else None,
             "rain_max": max(rains) if rains else None,
+            "rain_total": round(sum(rains), 1) if rains else 0.0,
             "rain_seen": any(r > 0 for r in rains),
             "snow_max": max(snow) if snow else None,
             "snow_seen": any(s > 0 for s in snow),
             "humidity_avg": (sum(humidities) / len(humidities)) if humidities else None,
         })
     return summaries
+
+
+def all_time_records(summaries):
+    """The headline extremes across the whole log so far - hottest/coldest
+    reading, wettest day, windiest gust, each with the day it happened.
+    Returns None until there's at least one day of data."""
+    if not summaries:
+        return None
+
+    with_temp_max = [d for d in summaries if d["temp_max"] is not None]
+    with_temp_min = [d for d in summaries if d["temp_min"] is not None]
+    with_rain = [d for d in summaries if d.get("rain_total")]
+    with_gust = [d for d in summaries if d["gust_max"] is not None]
+
+    return {
+        "hottest": max(with_temp_max, key=lambda d: d["temp_max"]) if with_temp_max else None,
+        "coldest": min(with_temp_min, key=lambda d: d["temp_min"]) if with_temp_min else None,
+        "wettest": max(with_rain, key=lambda d: d["rain_total"]) if with_rain else None,
+        "windiest": max(with_gust, key=lambda d: d["gust_max"]) if with_gust else None,
+    }
+
+
+def records_card_html(summaries):
+    records = all_time_records(summaries)
+    if not records:
+        return '''<div class="card">
+      <h2>All-time records</h2>
+      <div class="no-data">Not enough data yet - check back after a day or two.</div>
+    </div>'''
+
+    def tile(label, day, value_text):
+        if day is None:
+            return '<div class="stat"><div class="label">{}</div><div class="val">Not enough data yet</div></div>'.format(label)
+        return '<div class="stat"><div class="label">{label}</div><div class="val">{value}</div><div class="rec-date">{date}</div></div>'.format(
+            label=label, value=value_text, date=_day_label(day["date"]),
+        )
+
+    hottest, coldest, wettest, windiest = (
+        records["hottest"], records["coldest"], records["wettest"], records["windiest"],
+    )
+    tiles = "".join([
+        tile("Hottest", hottest, "{}&deg;C".format(fnum(hottest["temp_max"], 1)) if hottest else ""),
+        tile("Coldest", coldest, "{}&deg;C".format(fnum(coldest["temp_min"], 1)) if coldest else ""),
+        tile("Wettest day", wettest, "{} mm".format(fnum(wettest["rain_total"], 1)) if wettest else ""),
+        tile("Windiest gust", windiest, "{} km/h".format(fnum(windiest["gust_max"], 1)) if windiest else ""),
+    ])
+
+    return '''<div class="card">
+      <h2>All-time records</h2>
+      <div class="grid records-grid">{tiles}</div>
+    </div>'''.format(tiles=tiles)
 
 
 def _day_label(date_key):
@@ -118,6 +170,8 @@ def render(location_name, rows, output_path, days_limit=180):
             )
         body_rows = "".join(row_html)
 
+    records_html = records_card_html(summaries)
+
     html = '''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -143,6 +197,13 @@ def render(location_name, rows, output_path, days_limit=180):
   .back-link:hover{{text-decoration:underline;}}
 
   .card{{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px;overflow-x:auto;}}
+  .grid{{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}}
+  .records-grid{{grid-template-columns:repeat(2,1fr);}}
+  @media (min-width:640px){{ .records-grid{{grid-template-columns:repeat(4,1fr);}} }}
+  .stat{{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;}}
+  .stat .label{{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}}
+  .stat .val{{font-size:1.05rem;font-weight:700;margin-top:2px;color:var(--navy);}}
+  .stat .rec-date{{font-size:.72rem;color:var(--muted);margin-top:2px;}}
   table.days{{width:100%;border-collapse:collapse;font-size:.82rem;}}
   table.days th{{text-align:left;color:var(--navy);font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;padding:8px;border-bottom:2px solid var(--line);white-space:nowrap;}}
   table.days td{{padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;}}
@@ -157,6 +218,8 @@ def render(location_name, rows, output_path, days_limit=180):
   <h1>{location_name} &mdash; Full History</h1>
   <div class="updated">One row per day, newest first &middot; {total_days} day{plural} logged so far</div>
   <a class="back-link" href="index.html">&larr; Back to current conditions</a>
+
+  {records_html}
 
   <div class="card">
     <table class="days">
@@ -190,6 +253,7 @@ if ('serviceWorker' in navigator) {{
         total_days=total_days,
         plural="" if total_days == 1 else "s",
         body_rows=body_rows,
+        records_html=records_html,
         shown_days=len(shown),
     )
 

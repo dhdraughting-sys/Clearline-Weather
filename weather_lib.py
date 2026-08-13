@@ -22,6 +22,7 @@ import urllib.parse
 from zoneinfo import ZoneInfo
 
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 
 UK_TZ = ZoneInfo("Europe/London")
 
@@ -43,16 +44,24 @@ CURRENT_VARS = [
     "wind_direction_10m", "wind_gusts_10m", "cloud_cover", "is_day",
 ]
 # uv_index and visibility aren't in the `current` block - pulled from the
-# current hour's `hourly` value instead.
-HOURLY_EXTRA_VARS = ["uv_index", "visibility"]
+# current hour's `hourly` value instead. temperature_2m is also pulled
+# hourly (in addition to the `current` block's own reading) purely so we
+# have a short run of upcoming hours to scan for overnight frost risk.
+HOURLY_EXTRA_VARS = ["uv_index", "visibility", "temperature_2m"]
 
 CSV_FIELDS = [
     "captured_at", "api_time", "temp_c", "apparent_c", "dew_point_c",
     "humidity_pct", "pressure_msl_hpa", "surface_pressure_hpa", "wind_kph",
     "wind_dir_deg", "gusts_kph", "precip_mm", "rain_mm", "snowfall_cm",
     "cloud_pct", "uv_index", "visibility_m", "weather_code", "is_day",
-    "sunrise", "sunset",
+    "sunrise", "sunset", "aqi", "pm2_5", "pm10",
 ]
+
+# Fields returned by fetch_current()/fetch_air_quality() that are useful for
+# the dashboard right now but deliberately NOT stored in the CSV log - things
+# derived from a forecast (like frost risk) rather than a measurement, so
+# logging them wouldn't mean anything looking back at old rows.
+_NON_CSV_READING_KEYS = {"frost_risk"}
 
 # Rough mapping of Open-Meteo's WMO weather_code to a short label + emoji,
 # just for the dashboard - not exhaustive, falls back to the raw code.
@@ -129,6 +138,8 @@ def fetch_current(lat, lon, timeout=20):
     sunrise = sunrise_list[0][-5:] if sunrise_list else None
     sunset = sunset_list[0][-5:] if sunset_list else None
 
+    frost = _frost_risk_from_hourly(hourly_times, hourly.get("temperature_2m", []), api_time)
+
     captured_at_local = now_local().isoformat(timespec="seconds")
 
     return {
@@ -153,7 +164,225 @@ def fetch_current(lat, lon, timeout=20):
         "is_day": cur.get("is_day"),
         "sunrise": sunrise,
         "sunset": sunset,
+        "frost_risk": frost,
     }
+
+
+FROST_RISK_THRESHOLD_C = 2.0  # ground frost is a real risk even when the
+# air temperature a couple of metres up (what this measures) is still just
+# above freezing - 2C is the usual rule-of-thumb gardeners use.
+
+
+def _frost_risk_from_hourly(hourly_times, hourly_temps, api_time, hours_ahead=24):
+    """Scan the next `hours_ahead` hours of forecast temperature for a
+    ground-frost risk. Returns None if there isn't enough data to check,
+    otherwise a dict with whether there's a risk and when/how cold."""
+    if not hourly_times or not hourly_temps or not api_time:
+        return None
+    try:
+        now_dt = datetime.datetime.fromisoformat(api_time)
+    except ValueError:
+        return None
+    cutoff = now_dt + datetime.timedelta(hours=hours_ahead)
+
+    coldest_temp, coldest_time = None, None
+    for t, temp in zip(hourly_times, hourly_temps):
+        if temp is None:
+            continue
+        try:
+            t_dt = datetime.datetime.fromisoformat(t)
+        except ValueError:
+            continue
+        if now_dt <= t_dt <= cutoff:
+            if coldest_temp is None or temp < coldest_temp:
+                coldest_temp, coldest_time = temp, t_dt
+
+    if coldest_temp is None:
+        return None
+    return {
+        "at_risk": coldest_temp <= FROST_RISK_THRESHOLD_C,
+        "min_temp_c": coldest_temp,
+        "min_temp_time": coldest_time.strftime("%a %H:%M") if coldest_time else None,
+    }
+
+
+def fetch_air_quality(lat, lon, timeout=20):
+    """Call Open-Meteo's separate free Air Quality API for the same spot.
+    Returns a dict with a couple of the most useful figures - the European
+    Air Quality Index (0-100+, higher is worse) plus the two pollutant
+    readings people most often care about (fine particulates)."""
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "current": "european_aqi,pm2_5,pm10",
+        "timezone": "Europe/London",
+    }
+    url = "{}?{}".format(AIR_QUALITY_URL, urllib.parse.urlencode(params))
+    req = urllib.request.Request(url, headers={"User-Agent": "clearline-weather-app/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.HTTPError, urllib.error.URLError):
+        # Air quality is a nice-to-have, not core to the site - if this one
+        # call fails, carry on without it rather than failing the whole run.
+        return {"aqi": None, "pm2_5": None, "pm10": None}
+
+    cur = data.get("current", {})
+    return {
+        "aqi": cur.get("european_aqi"),
+        "pm2_5": cur.get("pm2_5"),
+        "pm10": cur.get("pm10"),
+    }
+
+
+AQI_BANDS = [
+    (20, "Good", "#4CAF50"), (40, "Fair", "#8BC34A"), (60, "Moderate", "#FFC107"),
+    (80, "Poor", "#FF7043"), (100, "Very Poor", "#E53935"), (None, "Extremely Poor", "#7B1FA2"),
+]
+
+
+def aqi_label(aqi):
+    """European AQI (0-100+) -> (label, colour), per the EU's own bands."""
+    if aqi is None or aqi == "":
+        return None, None
+    try:
+        aqi = float(aqi)
+    except (TypeError, ValueError):
+        return None, None
+    for threshold, label, colour in AQI_BANDS:
+        if threshold is None or aqi <= threshold:
+            return label, colour
+    return "Extremely Poor", "#7B1FA2"
+
+
+def heat_index_c(temp_c, humidity_pct):
+    """US NWS heat index (Rothfusz regression), converted to Celsius.
+    Only really means anything above about 27C with decent humidity - below
+    that it just returns the plain temperature unchanged, same as the NWS
+    formula's own valid range."""
+    if temp_c is None or humidity_pct is None:
+        return None
+    if temp_c < 26.7:  # ~80F - below this the formula isn't meaningful
+        return temp_c
+    t_f = temp_c * 9 / 5 + 32
+    r = humidity_pct
+    hi_f = (
+        -42.379 + 2.04901523 * t_f + 10.14333127 * r - 0.22475541 * t_f * r
+        - 0.00683783 * t_f * t_f - 0.05481717 * r * r + 0.00122874 * t_f * t_f * r
+        + 0.00085282 * t_f * r * r - 0.00000199 * t_f * t_f * r * r
+    )
+    return round((hi_f - 32) * 5 / 9, 1)
+
+
+def wind_chill_c(temp_c, wind_kph):
+    """JAG/TI wind chill formula (the one the UK Met Office/most of Europe
+    uses), which is only valid/meaningful below about 10C with a bit of
+    wind - outside that range it just returns the plain temperature."""
+    if temp_c is None or wind_kph is None:
+        return None
+    if temp_c > 10.0 or wind_kph < 4.8:
+        return temp_c
+    v_pow = wind_kph ** 0.16
+    wc = 13.12 + 0.6215 * temp_c - 11.37 * v_pow + 0.3965 * temp_c * v_pow
+    return round(wc, 1)
+
+
+def feels_like_calculated(temp_c, humidity_pct, wind_kph):
+    """Our own 'feels like', calculated directly from this station's own
+    temperature/humidity/wind rather than taken from Open-Meteo's own
+    apparent_temperature figure - heat index when it's warm and humid,
+    wind chill when it's cold and breezy, otherwise just the plain
+    temperature (neither effect is significant)."""
+    try:
+        temp_c = float(temp_c) if temp_c not in (None, "") else None
+        humidity_pct = float(humidity_pct) if humidity_pct not in (None, "") else None
+        wind_kph = float(wind_kph) if wind_kph not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
+    if temp_c is None:
+        return None
+    if temp_c >= 26.7 and humidity_pct is not None:
+        return heat_index_c(temp_c, humidity_pct)
+    if temp_c <= 10.0 and wind_kph is not None:
+        return wind_chill_c(temp_c, wind_kph)
+    return round(temp_c, 1)
+
+
+_SYNODIC_MONTH_DAYS = 29.530588861
+_KNOWN_NEW_MOON = datetime.datetime(2000, 1, 6, 18, 14)  # a well-known reference new moon (UTC)
+
+MOON_PHASES = [
+    (0.02, "New Moon", "🌑"), (0.25, "Waxing Crescent", "🌒"),
+    (0.27, "First Quarter", "🌓"), (0.48, "Waxing Gibbous", "🌔"),
+    (0.52, "Full Moon", "🌕"), (0.73, "Waning Gibbous", "🌖"),
+    (0.77, "Last Quarter", "🌗"), (0.98, "Waning Crescent", "🌘"),
+    (1.01, "New Moon", "🌑"),
+]
+
+
+def moon_phase(date=None):
+    """Which phase the moon is in on a given date - pure calculation, no
+    API call needed. Good enough for a casual dashboard reading (accurate
+    to well within a day), not precision astronomy."""
+    if date is None:
+        date = now_local().date()
+    if isinstance(date, datetime.datetime):
+        date = date.date()
+    days_since = (datetime.datetime(date.year, date.month, date.day, 12) - _KNOWN_NEW_MOON).total_seconds() / 86400
+    phase_fraction = (days_since % _SYNODIC_MONTH_DAYS) / _SYNODIC_MONTH_DAYS
+    for threshold, name, emoji in MOON_PHASES:
+        if phase_fraction <= threshold:
+            return name, emoji
+    return "New Moon", "🌑"  # pragma: no cover - unreachable, thresholds cover 0-1.01
+
+
+def rainfall_totals(rows):
+    """Sum rain_mm over today / the last 7 days / this calendar month /
+    this calendar year, from the full log (weather_lib.load_all)."""
+    today = now_local().date()
+    week_ago = today - datetime.timedelta(days=7)
+    totals = {"today": 0.0, "week": 0.0, "month": 0.0, "year": 0.0}
+    for row in rows:
+        try:
+            ts = datetime.datetime.fromisoformat(row["captured_at"])
+            rain = float(row.get("rain_mm") or 0)
+        except (ValueError, KeyError, TypeError):
+            continue
+        d = ts.date()
+        if d.year == today.year:
+            totals["year"] += rain
+            if d.month == today.month:
+                totals["month"] += rain
+        if d >= week_ago:
+            totals["week"] += rain
+        if d == today:
+            totals["today"] += rain
+    return {k: round(v, 1) for k, v in totals.items()}
+
+
+WIND_ROSE_COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                      "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+
+
+def wind_rose_data(rows):
+    """How often the wind's blown from each of 16 compass directions -
+    the data behind a wind rose chart. Returns a list of 16 counts in
+    WIND_ROSE_COMPASS order, or None if there's no wind direction data."""
+    counts = [0] * 16
+    total = 0
+    for row in rows:
+        deg = row.get("wind_dir_deg")
+        if deg in (None, ""):
+            continue
+        try:
+            idx = int((float(deg) / 22.5) + 0.5) % 16
+        except (TypeError, ValueError):
+            continue
+        counts[idx] += 1
+        total += 1
+    if total == 0:
+        return None
+    return {"counts": counts, "total": total, "compass": WIND_ROSE_COMPASS}
 
 
 def _migrate_header_if_needed(csv_path):
@@ -201,7 +430,7 @@ def append_reading(csv_path, reading):
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
         if not file_exists:
             writer.writeheader()
-        writer.writerow({k: ("" if v is None else v) for k, v in reading.items()})
+        writer.writerow({k: ("" if reading.get(k) is None else reading.get(k)) for k in CSV_FIELDS})
     return True
 
 
@@ -270,3 +499,84 @@ def pressure_trend(rows, hours=3):
     if delta <= -1.0:
         return "Falling", delta
     return "Steady", delta
+
+
+def barometric_outlook(rows):
+    """A short-range (next few hours, not days) outlook based on classic
+    barometer-reading rules: how high the pressure currently is, and how
+    fast it's moving. This is a genuinely old, well-established technique
+    (the same basic idea printed on the face of a household barometer, and
+    used by sailors long before satellite forecasts existed) - rapid falls
+    tend to precede rain/wind within hours, a high steady reading tends to
+    mean settled weather continuing, and so on.
+
+    Deliberately NOT a multi-day forecast: a single station's own pressure
+    reading can't see a system still hundreds of miles away, so this only
+    speaks to the next few hours, where local pressure tendency is actually
+    a reliable signal."""
+    if not rows:
+        return None
+    _, delta = pressure_trend(rows, hours=3)
+    if delta is None:
+        return None
+    try:
+        pressure = float(rows[-1]["pressure_msl_hpa"])
+    except (ValueError, KeyError, TypeError):
+        return None
+
+    if pressure >= 1030:
+        level = "very high"
+    elif pressure >= 1022:
+        level = "high"
+    elif pressure >= 1009:
+        level = "normal"
+    elif pressure >= 1000:
+        level = "low"
+    else:
+        level = "very low"
+
+    if delta <= -3.0:
+        rate = "rapid fall"
+    elif delta <= -1.0:
+        rate = "falling"
+    elif delta < 1.0:
+        rate = "steady"
+    elif delta < 3.0:
+        rate = "rising"
+    else:
+        rate = "rapid rise"
+
+    if rate == "rapid fall":
+        headline = "Unsettled weather likely within a few hours"
+        detail = "Pressure is falling quickly - rain and/or stronger winds often follow within 3-6 hours."
+    elif rate == "falling":
+        if level in ("low", "very low"):
+            headline = "Unsettled conditions likely to continue"
+            detail = "Pressure is low and still falling - little sign of improvement in the next few hours."
+        else:
+            headline = "Turning cloudier or showery"
+            detail = "Pressure is easing - increasing cloud or a spell of rain is possible over the next few hours."
+    elif rate == "rising":
+        headline = "Improving conditions likely"
+        detail = "Pressure is climbing - conditions should brighten or settle over the next few hours."
+    elif rate == "rapid rise":
+        headline = "Clearing quickly"
+        detail = "Pressure is rising fast, often the sign of a brief clearance - drier, brighter weather likely soon, though rapid rises can also be short-lived."
+    else:  # steady
+        if level in ("high", "very high"):
+            headline = "Fair weather set to continue"
+            detail = "Pressure is high and steady - settled conditions likely for the next few hours."
+        elif level in ("low", "very low"):
+            headline = "Unsettled weather set to continue"
+            detail = "Pressure is low and steady - no strong sign of change in the next few hours."
+        else:
+            headline = "Little change expected"
+            detail = "Pressure is steady - conditions should stay much the same over the next few hours."
+
+    return {
+        "headline": headline,
+        "detail": detail,
+        "pressure_level": level,
+        "trend_rate": rate,
+        "delta_3h": delta,
+    }

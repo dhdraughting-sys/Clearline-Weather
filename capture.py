@@ -20,7 +20,9 @@ changes on disk - this script itself never touches git.
 
 import sys
 
-from weather_lib import load_locations, fetch_current, append_reading, load_recent, load_all
+from weather_lib import (
+    load_locations, fetch_current, fetch_air_quality, append_reading, load_recent, load_all,
+)
 import dashboard
 import history
 
@@ -48,6 +50,16 @@ def main():
             any_errors = True
             continue
 
+        # Air quality is a separate API call and a nice-to-have - if it
+        # fails for any reason, fetch_air_quality() itself already returns
+        # all-None rather than raising, so this never blocks a capture run.
+        try:
+            aqi_reading = fetch_air_quality(loc["lat"], loc["lon"])
+        except Exception as e:
+            print("[{}] air quality fetch failed (non-fatal): {}".format(slug, e), file=sys.stderr)
+            aqi_reading = {"aqi": None, "pm2_5": None, "pm10": None}
+        reading.update(aqi_reading)
+
         added = append_reading(csv_path, reading)
         print("[{}] {} (temp {}C, pressure {}hPa)".format(
             slug, "logged new reading" if added else "no new data since last run",
@@ -55,10 +67,10 @@ def main():
         ))
 
         rows = load_recent(csv_path, hours=HISTORY_HOURS)
-        dashboard.render(loc["name"], reading, rows, output_path)
+        all_rows = load_all(csv_path)
+        dashboard.render(loc["name"], reading, rows, output_path, lat=loc["lat"], lon=loc["lon"], all_rows=all_rows)
         print("[{}] dashboard updated -> {}".format(slug, output_path))
 
-        all_rows = load_all(csv_path)
         history_path = "history.html" if len(locations) == 1 else "history_{}.html".format(slug)
         history.render(loc["name"], all_rows, history_path)
         print("[{}] history page updated -> {}".format(slug, history_path))
