@@ -40,46 +40,138 @@ def fnum(val, decimals=1, suffix=""):
         return str(val)
 
 
-def svg_sparkline(rows, key, width=560, height=120, pad=10, colour="#1F3864", unit=""):
-    """A tiny hand-rolled SVG line chart - no chart library, no CDN."""
+def _nice_axis_step(value_range, target_ticks=4):
+    """Round a raw axis step up to a 'nice' number (1/2/5 x a power of ten)
+    so gridlines land on round values like 10/20/30 rather than
+    13.7/27.4/41.1 - the same trick real charting libraries use."""
+    if value_range <= 0:
+        return 1.0
+    raw_step = value_range / target_ticks
+    magnitude = 10 ** math.floor(math.log10(raw_step))
+    for m in (1, 2, 5, 10):
+        step = m * magnitude
+        if step >= raw_step:
+            return step
+    return 10 * magnitude
+
+
+def svg_sparkline(rows, key, width=640, height=220, colour="#1F3864", unit="", decimals=1, fill=True):
+    """A hand-rolled SVG line chart - no chart library, no CDN - with
+    enough on it to actually read trends off, not just glance at a
+    squiggle: horizontal gridlines with value labels, a few time labels
+    along the bottom, a dashed average line, and a min/avg/max/now stat
+    strip above the chart."""
     points = []
     for row in rows:
         val = row.get(key)
         if val in (None, ""):
             continue
         try:
-            points.append((row["captured_at"], float(val)))
-        except (ValueError, KeyError):
+            ts = datetime.datetime.fromisoformat(row["captured_at"])
+            points.append((ts, float(val)))
+        except (ValueError, KeyError, TypeError):
             continue
 
     if len(points) < 2:
         return '<div class="no-data">Not enough data yet for a chart — check back after a few readings.</div>'
 
     values = [p[1] for p in points]
-    vmin, vmax = min(values), max(values)
-    if vmax == vmin:
-        vmax = vmin + 1  # avoid a divide-by-zero flat line
+    raw_min, raw_max = min(values), max(values)
+    avg = sum(values) / len(values)
+    current = values[-1]
+    if raw_max == raw_min:
+        raw_max = raw_min + 1  # avoid a divide-by-zero flat line
 
+    step = _nice_axis_step(raw_max - raw_min)
+    grid_min = math.floor(raw_min / step) * step
+    grid_max = math.ceil(raw_max / step) * step
+    if grid_max == grid_min:
+        grid_max = grid_min + step
+
+    pad_left, pad_right, pad_top, pad_bottom = 46, 14, 16, 26
+    plot_w = width - pad_left - pad_right
+    plot_h = height - pad_top - pad_bottom
     n = len(points)
-    coords = []
-    for i, (_, v) in enumerate(points):
-        x = pad + (i / (n - 1)) * (width - 2 * pad)
-        y = height - pad - ((v - vmin) / (vmax - vmin)) * (height - 2 * pad)
-        coords.append("{:.1f},{:.1f}".format(x, y))
-    polyline = " ".join(coords)
 
+    def x_for(i):
+        return pad_left + (i / (n - 1)) * plot_w
+
+    def y_for(v):
+        return pad_top + plot_h - ((v - grid_min) / (grid_max - grid_min)) * plot_h
+
+    coords = ["{:.1f},{:.1f}".format(x_for(i), y_for(v)) for i, (_, v) in enumerate(points)]
+    polyline = " ".join(coords)
     last_x, last_y = coords[-1].split(",")
 
-    return '''<svg viewBox="0 0 {w} {h}" class="sparkline" preserveAspectRatio="none">
-      <polyline fill="none" stroke="{colour}" stroke-width="2" points="{polyline}" />
-      <circle cx="{lx}" cy="{ly}" r="3.5" fill="{colour}" />
-      <text x="{pad}" y="14" class="chart-label">{vmax}{unit}</text>
-      <text x="{pad}" y="{h_minus}" class="chart-label">{vmin}{unit}</text>
-    </svg>'''.format(
-        w=width, h=height, polyline=polyline, colour=colour,
-        lx=last_x, ly=last_y, pad=pad, vmax=round(vmax, 1), vmin=round(vmin, 1),
-        unit=unit, h_minus=height - 2,
+    fill_html = ""
+    if fill:
+        baseline = pad_top + plot_h
+        fill_points = "{} {:.1f},{:.1f} {:.1f},{:.1f}".format(
+            polyline, x_for(n - 1), baseline, x_for(0), baseline,
+        )
+        fill_html = '<polygon points="{}" fill="{}" opacity=".10" />'.format(fill_points, colour)
+
+    # Horizontal gridlines + value labels, at "nice" steps.
+    grid_html = []
+    n_ticks = int(round((grid_max - grid_min) / step)) + 1
+    for t in range(n_ticks):
+        val = grid_min + t * step
+        y = y_for(val)
+        label = "{:.0f}".format(val) if (decimals == 0 or float(val).is_integer()) else "{:.{d}f}".format(val, d=decimals)
+        grid_html.append(
+            '<line x1="{pl}" y1="{y:.1f}" x2="{right}" y2="{y:.1f}" stroke="#E7EEF6" stroke-width="1" />'
+            '<text x="{lx}" y="{ly:.1f}" class="chart-axis-label" text-anchor="end">{label}{unit}</text>'.format(
+                pl=pad_left, right=width - pad_right, y=y,
+                lx=pad_left - 8, ly=y + 3, label=label, unit=unit,
+            )
+        )
+
+    # A handful of evenly-spaced time labels along the bottom.
+    x_label_html = []
+    label_count = min(4, n)
+    for k in range(label_count):
+        idx = int(round(k * (n - 1) / (label_count - 1))) if label_count > 1 else 0
+        ts, _ = points[idx]
+        x_label_html.append(
+            '<text x="{x:.1f}" y="{y}" class="chart-axis-label" text-anchor="middle">{label}</text>'.format(
+                x=x_for(idx), y=height - 6, label=ts.strftime("%a %H:%M"),
+            )
+        )
+
+    avg_y = y_for(avg)
+    avg_line_html = (
+        '<line x1="{pl}" y1="{y:.1f}" x2="{right}" y2="{y:.1f}" stroke="{colour}" '
+        'stroke-width="1.2" stroke-dasharray="4,3" opacity=".55" />'.format(
+            pl=pad_left, right=width - pad_right, y=avg_y, colour=colour,
+        )
     )
+
+    def fmt(v):
+        return "{:.{d}f}".format(v, d=decimals)
+
+    stats_html = (
+        '<div class="chart-stats">'
+        '<span>Min <strong>{vmin}{unit}</strong></span>'
+        '<span>Avg <strong>{vavg}{unit}</strong></span>'
+        '<span>Max <strong>{vmax}{unit}</strong></span>'
+        '<span>Now <strong>{vcur}{unit}</strong></span>'
+        '</div>'
+    ).format(vmin=fmt(raw_min), vavg=fmt(avg), vmax=fmt(raw_max), vcur=fmt(current), unit=unit)
+
+    svg_html = '''<svg viewBox="0 0 {w} {h}" class="sparkline" preserveAspectRatio="xMidYMid meet">
+      {fill_html}
+      {grid_html}
+      {avg_line_html}
+      <polyline fill="none" stroke="{colour}" stroke-width="2.2" points="{polyline}" />
+      <circle cx="{lx}" cy="{ly}" r="4" fill="{colour}" />
+      {x_label_html}
+    </svg>'''.format(
+        w=width, h=height, fill_html=fill_html, grid_html="".join(grid_html),
+        avg_line_html=avg_line_html, colour=colour, polyline=polyline,
+        lx=last_x, ly=last_y, x_label_html="".join(x_label_html),
+    )
+
+    return stats_html + svg_html
 
 
 def history_table(rows, limit=24):
@@ -257,7 +349,31 @@ def wind_rose_card_html(rows):
     </div>'''.format(svg=wind_rose_svg(rows), note=note)
 
 
-def render(location_name, latest, rows, output_path, lat=None, lon=None, all_rows=None):
+def location_switcher_html(locations, current_slug, view="dashboard"):
+    """Dropdown for jumping straight to another monitored location without
+    going back through a menu page - one tap switches the page underneath,
+    staying on the same kind of view (current conditions vs. full history)
+    you were already looking at. Renders nothing when there's only one
+    location, since a dropdown with a single fixed option isn't useful."""
+    if not locations or len(locations) < 2:
+        return ""
+    options = []
+    for loc in locations:
+        path = loc["history_path"] if view == "history" else loc["dashboard_path"]
+        selected = " selected" if loc["slug"] == current_slug else ""
+        options.append('<option value="{path}"{selected}>{name}</option>'.format(
+            path=path, selected=selected, name=loc["name"],
+        ))
+    return '''<div class="loc-switcher">
+      <span class="loc-switcher-icon">\U0001F4CD</span>
+      <select onchange="if (this.value) window.location.href = this.value;" aria-label="Switch location">
+        {options}
+      </select>
+    </div>'''.format(options="".join(options))
+
+
+def render(location_name, latest, rows, output_path, lat=None, lon=None, all_rows=None,
+           locations=None, current_slug=None, history_path="history.html"):
     if all_rows is None:
         all_rows = rows  # falls back to the chart-window rows if the full log wasn't passed in
 
@@ -265,6 +381,7 @@ def render(location_name, latest, rows, output_path, lat=None, lon=None, all_row
     cond_label, cond_emoji = weather_label(latest.get("weather_code"))
     generated_at = now_local().strftime("%a %d %b %Y, %H:%M")
     outlook_html = outlook_card_html(rows)
+    loc_switcher_html = location_switcher_html(locations, current_slug, view="dashboard")
     frost_html = frost_banner_html(latest.get("frost_risk"))
     rainfall_html = rainfall_card_html(all_rows)
     moon_daylight_html = moon_daylight_card_html(latest)
@@ -282,9 +399,9 @@ def render(location_name, latest, rows, output_path, lat=None, lon=None, all_row
         if trend_label else "Not enough history yet"
     )
 
-    temp_chart = svg_sparkline(rows, "temp_c", colour="#C0392B", unit="°C")
-    pressure_chart = svg_sparkline(rows, "pressure_msl_hpa", colour="#1F3864", unit=" hPa")
-    wind_chart = svg_sparkline(rows, "wind_kph", colour="#3E6FA6", unit=" km/h")
+    temp_chart = svg_sparkline(rows, "temp_c", colour="#C0392B", unit="°C", decimals=1)
+    pressure_chart = svg_sparkline(rows, "pressure_msl_hpa", colour="#1F3864", unit=" hPa", decimals=0)
+    wind_chart = svg_sparkline(rows, "wind_kph", colour="#3E6FA6", unit=" km/h", decimals=0)
 
     html = '''<!DOCTYPE html>
 <html lang="en">
@@ -305,7 +422,12 @@ def render(location_name, latest, rows, output_path, lat=None, lon=None, all_row
   body{{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;padding-bottom:40px;}}
   .wrap{{max-width:900px;margin:0 auto;padding:20px 16px;}}
   .eyebrow{{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}}
+  .title-row{{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}}
   h1{{font-size:1.5rem;color:var(--navy);margin:4px 0 2px;}}
+  .loc-switcher{{display:flex;align-items:center;gap:6px;background:var(--white);border:1px solid var(--line);border-radius:10px;padding:6px 10px;}}
+  .loc-switcher-icon{{font-size:.9rem;}}
+  .loc-switcher select{{border:0;background:transparent;font-family:inherit;font-size:.85rem;font-weight:600;color:var(--navy);padding:2px 4px;max-width:180px;}}
+  .loc-switcher select:focus{{outline:2px solid var(--navy);outline-offset:2px;}}
   .updated{{font-size:.8rem;color:var(--muted);margin-bottom:18px;}}
   .updated a{{color:var(--navy);font-weight:600;text-decoration:none;}}
   .updated a:hover{{text-decoration:underline;}}
@@ -342,6 +464,9 @@ def render(location_name, latest, rows, output_path, lat=None, lon=None, all_row
   .radar-frame{{width:100%;border:0;border-radius:10px;display:block;aspect-ratio:16/10;}}
   .sparkline{{width:100%;height:auto;}}
   .chart-label{{font-size:9px;fill:var(--muted);}}
+  .chart-axis-label{{font-size:10px;fill:var(--muted);}}
+  .chart-stats{{display:flex;flex-wrap:wrap;gap:14px;font-size:.75rem;color:var(--muted);margin-bottom:10px;}}
+  .chart-stats strong{{color:var(--navy);font-size:.85rem;margin-left:3px;}}
   .no-data{{font-size:.85rem;color:var(--muted);padding:20px 0;text-align:center;}}
 
   table.history{{width:100%;border-collapse:collapse;font-size:.82rem;}}
@@ -357,8 +482,11 @@ def render(location_name, latest, rows, output_path, lat=None, lon=None, all_row
 <body>
 <div class="wrap">
   <span class="eyebrow">Personal Weather Log</span>
-  <h1>{location_name}</h1>
-  <div class="updated">Last updated {generated_at} &middot; <a href="history.html">View full history &rarr;</a></div>
+  <div class="title-row">
+    <h1>{location_name}</h1>
+    {loc_switcher_html}
+  </div>
+  <div class="updated">Last updated {generated_at} &middot; <a href="{history_path}">View full history &rarr;</a> &middot; <a href="globe.html">&#127760; Cloud Globe</a></div>
 
   {frost_html}
 
@@ -469,6 +597,8 @@ if ('serviceWorker' in navigator) {{
         sunrise=latest.get("sunrise") or "—",
         sunset=latest.get("sunset") or "—",
         outlook_html=outlook_html,
+        loc_switcher_html=loc_switcher_html,
+        history_path=history_path,
         frost_html=frost_html,
         rainfall_html=rainfall_html,
         moon_daylight_html=moon_daylight_html,

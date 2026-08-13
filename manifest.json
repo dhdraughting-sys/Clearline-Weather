@@ -1,5 +1,5 @@
 {
-  "name": "Meriden Weather Log",
+  "name": "Clearline Weather Log",
   "short_name": "Weather",
   "start_url": "index.html",
   "scope": "./",

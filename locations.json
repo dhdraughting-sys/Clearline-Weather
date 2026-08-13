@@ -3,6 +3,31 @@
     "slug": "meriden",
     "name": "Meriden, CV7 7HT",
     "lat": 52.427,
-    "lon": -1.660
+    "lon": -1.660,
+    "default": true
+  },
+  {
+    "slug": "heathrow",
+    "name": "London Heathrow",
+    "lat": 51.4700,
+    "lon": -0.4543
+  },
+  {
+    "slug": "dawlish-warren",
+    "name": "Dawlish Warren",
+    "lat": 50.5931,
+    "lon": -3.4227
+  },
+  {
+    "slug": "inverness",
+    "name": "Inverness",
+    "lat": 57.4778,
+    "lon": -4.2247
+  },
+  {
+    "slug": "la-rochelle",
+    "name": "La Rochelle, France",
+    "lat": 46.1603,
+    "lon": -1.1511
   }
 ]

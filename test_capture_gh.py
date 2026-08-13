@@ -23,9 +23,11 @@ def make_mock_response(temp=15.0, pressure=1013.0, api_time="2026-08-06T10:30"):
             "time": api_time,
             "temperature_2m": temp,
             "relative_humidity_2m": 65,
+            "dew_point_2m": temp - 5.0,
             "apparent_temperature": temp - 1.2,
             "precipitation": 0.0,
             "rain": 0.0,
+            "snowfall": 0.0,
             "weather_code": 2,
             "pressure_msl": pressure,
             "surface_pressure": pressure - 15,
@@ -71,6 +73,7 @@ class TestCaptureGitHubActions(unittest.TestCase):
             capture.main()
 
         self.assertTrue(os.path.exists("index.html"), "should write index.html directly at repo root for GitHub Pages")
+        self.assertTrue(os.path.exists("history.html"), "should also write the full-history page at repo root")
         self.assertTrue(os.path.exists(os.path.join("data", "meriden.csv")))
 
         with open("index.html", encoding="utf-8") as f:
@@ -101,6 +104,81 @@ class TestCaptureGitHubActions(unittest.TestCase):
         with open(os.path.join("data", "meriden.csv"), encoding="utf-8") as f:
             rows = f.read().strip().splitlines()
         self.assertEqual(len(rows), 3, "header + 2 distinct readings")
+
+
+class TestLocationPaths(unittest.TestCase):
+    def test_default_flagged_location_gets_index_html(self):
+        locations = [
+            {"slug": "meriden", "name": "Meriden", "default": True},
+            {"slug": "heathrow", "name": "Heathrow"},
+        ]
+        paths = capture.location_paths(locations)
+        self.assertEqual(paths["meriden"], {"dashboard": "index.html", "history": "history.html"})
+        self.assertEqual(paths["heathrow"], {"dashboard": "dashboard_heathrow.html", "history": "history_heathrow.html"})
+
+    def test_no_default_flag_falls_back_to_first_location(self):
+        locations = [{"slug": "a", "name": "A"}, {"slug": "b", "name": "B"}]
+        paths = capture.location_paths(locations)
+        self.assertEqual(paths["a"]["dashboard"], "index.html")
+        self.assertEqual(paths["b"]["dashboard"], "dashboard_b.html")
+
+    def test_single_location_always_gets_index_html(self):
+        paths = capture.location_paths([{"slug": "meriden", "name": "Meriden"}])
+        self.assertEqual(paths["meriden"], {"dashboard": "index.html", "history": "history.html"})
+
+
+class TestMultiLocationCapture(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = "test_tmp_multi_location"
+        os.makedirs(self.tmpdir, exist_ok=True)
+        locations = [
+            {"slug": "meriden", "name": "Meriden, CV7 7HT", "lat": 52.427, "lon": -1.660, "default": True},
+            {"slug": "heathrow", "name": "London Heathrow", "lat": 51.47, "lon": -0.4543},
+            {"slug": "la-rochelle", "name": "La Rochelle, France", "lat": 46.1603, "lon": -1.1511},
+        ]
+        with open(os.path.join(self.tmpdir, "locations.json"), "w", encoding="utf-8") as f:
+            json.dump(locations, f)
+        self.cwd = os.getcwd()
+        os.chdir(self.tmpdir)
+
+    def tearDown(self):
+        os.chdir(self.cwd)
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_default_location_writes_index_others_get_own_pages(self):
+        with unittest.mock.patch("urllib.request.urlopen", return_value=make_mock_response()):
+            capture.main()
+
+        self.assertTrue(os.path.exists("index.html"))
+        self.assertTrue(os.path.exists("history.html"))
+        self.assertTrue(os.path.exists("dashboard_heathrow.html"))
+        self.assertTrue(os.path.exists("history_heathrow.html"))
+        self.assertTrue(os.path.exists("dashboard_la-rochelle.html"))
+        self.assertTrue(os.path.exists("history_la-rochelle.html"))
+        self.assertTrue(os.path.exists(os.path.join("data", "meriden.csv")))
+        self.assertTrue(os.path.exists(os.path.join("data", "heathrow.csv")))
+        self.assertTrue(os.path.exists(os.path.join("data", "la-rochelle.csv")))
+
+    def test_every_page_links_to_every_other_location(self):
+        with unittest.mock.patch("urllib.request.urlopen", return_value=make_mock_response()):
+            capture.main()
+
+        with open("index.html", encoding="utf-8") as f:
+            index_content = f.read()
+        self.assertIn("dashboard_heathrow.html", index_content)
+        self.assertIn("dashboard_la-rochelle.html", index_content)
+        self.assertIn("London Heathrow", index_content)
+        self.assertIn("La Rochelle, France", index_content)
+
+        with open("dashboard_heathrow.html", encoding="utf-8") as f:
+            heathrow_content = f.read()
+        self.assertIn('value="index.html"', heathrow_content)
+        self.assertIn("Meriden, CV7 7HT", heathrow_content)
+
+        with open("history_heathrow.html", encoding="utf-8") as f:
+            heathrow_history_content = f.read()
+        self.assertIn('value="history.html"', heathrow_history_content)
+        self.assertIn('href="dashboard_heathrow.html"', heathrow_history_content, "history page's back-link should return to its own dashboard")
 
 
 if __name__ == "__main__":

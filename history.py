@@ -7,7 +7,7 @@ cutoff) and groups it by calendar day.
 
 import datetime
 
-from dashboard import fnum
+from dashboard import fnum, location_switcher_html
 
 
 def _floats(rows, key):
@@ -127,7 +127,8 @@ def _day_label(date_key):
         return date_key
 
 
-def render(location_name, rows, output_path, days_limit=180):
+def render(location_name, rows, output_path, days_limit=180,
+           locations=None, current_slug=None, dashboard_path="index.html"):
     """rows should be the FULL log (weather_lib.load_all), not a 48h slice."""
     summaries = daily_summary(rows)
     total_days = len(summaries)
@@ -171,6 +172,7 @@ def render(location_name, rows, output_path, days_limit=180):
         body_rows = "".join(row_html)
 
     records_html = records_card_html(summaries)
+    loc_switcher_html = location_switcher_html(locations, current_slug, view="history")
 
     html = '''<!DOCTYPE html>
 <html lang="en">
@@ -191,8 +193,15 @@ def render(location_name, rows, output_path, days_limit=180):
   body{{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;padding-bottom:40px;}}
   .wrap{{max-width:1300px;margin:0 auto;padding:20px 16px;}}
   .eyebrow{{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}}
+  .title-row{{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}}
   h1{{font-size:1.5rem;color:var(--navy);margin:4px 0 8px;}}
+  .loc-switcher{{display:flex;align-items:center;gap:6px;background:var(--white);border:1px solid var(--line);border-radius:10px;padding:6px 10px;}}
+  .loc-switcher-icon{{font-size:.9rem;}}
+  .loc-switcher select{{border:0;background:transparent;font-family:inherit;font-size:.85rem;font-weight:600;color:var(--navy);padding:2px 4px;max-width:180px;}}
+  .loc-switcher select:focus{{outline:2px solid var(--navy);outline-offset:2px;}}
   .updated{{font-size:.8rem;color:var(--muted);margin-bottom:14px;}}
+  .updated a{{color:var(--navy);font-weight:600;text-decoration:none;}}
+  .updated a:hover{{text-decoration:underline;}}
   .back-link{{display:inline-block;font-size:.85rem;color:var(--navy);margin-bottom:18px;text-decoration:none;font-weight:600;}}
   .back-link:hover{{text-decoration:underline;}}
 
@@ -215,9 +224,12 @@ def render(location_name, rows, output_path, days_limit=180):
 <body>
 <div class="wrap">
   <span class="eyebrow">Personal Weather Log</span>
-  <h1>{location_name} &mdash; Full History</h1>
-  <div class="updated">One row per day, newest first &middot; {total_days} day{plural} logged so far</div>
-  <a class="back-link" href="index.html">&larr; Back to current conditions</a>
+  <div class="title-row">
+    <h1>{location_name} &mdash; Full History</h1>
+    {loc_switcher_html}
+  </div>
+  <div class="updated">One row per day, newest first &middot; {total_days} day{plural} logged so far &middot; <a href="globe.html">&#127760; Cloud Globe</a></div>
+  <a class="back-link" href="{dashboard_path}">&larr; Back to current conditions</a>
 
   {records_html}
 
@@ -254,6 +266,8 @@ if ('serviceWorker' in navigator) {{
         plural="" if total_days == 1 else "s",
         body_rows=body_rows,
         records_html=records_html,
+        loc_switcher_html=loc_switcher_html,
+        dashboard_path=dashboard_path,
         shown_days=len(shown),
     )
 
