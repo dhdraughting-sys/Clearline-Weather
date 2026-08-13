@@ -23,6 +23,13 @@
   .back-link:hover{text-decoration:underline;}
 
   .card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px;overflow-x:auto;}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .records-grid{grid-template-columns:repeat(2,1fr);}
+  @media (min-width:640px){ .records-grid{grid-template-columns:repeat(4,1fr);} }
+  .stat{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;}
+  .stat .label{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+  .stat .val{font-size:1.05rem;font-weight:700;margin-top:2px;color:var(--navy);}
+  .stat .rec-date{font-size:.72rem;color:var(--muted);margin-top:2px;}
   table.days{width:100%;border-collapse:collapse;font-size:.82rem;}
   table.days th{text-align:left;color:var(--navy);font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;padding:8px;border-bottom:2px solid var(--line);white-space:nowrap;}
   table.days td{padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;}
@@ -39,9 +46,14 @@
   <a class="back-link" href="index.html">&larr; Back to current conditions</a>
 
   <div class="card">
+      <h2>All-time records</h2>
+      <div class="grid records-grid"><div class="stat"><div class="label">Hottest</div><div class="val">35.9&deg;C</div><div class="rec-date">Thu 13 Aug 2026</div></div><div class="stat"><div class="label">Coldest</div><div class="val">9.2&deg;C</div><div class="rec-date">Sat 08 Aug 2026</div></div><div class="stat"><div class="label">Wettest day</div><div class="val">Not enough data yet</div></div><div class="stat"><div class="label">Windiest gust</div><div class="val">38.2 km/h</div><div class="rec-date">Thu 06 Aug 2026</div></div></div>
+    </div>
+
+  <div class="card">
     <table class="days">
       <thead><tr><th>Date</th><th>Temp (min&ndash;max, avg)</th><th>Dew point (avg)</th><th>Pressure (min&ndash;max)</th><th>Wind (avg, gusts)</th><th>Rain</th><th>Snow</th><th>Readings</th></tr></thead>
-      <tbody><tr><td>Thu 13 Aug 2026</td><td>18.1&ndash;35.9&deg;C (avg 32.0&deg;C)</td><td>10.3&deg;C</td><td>1017&ndash;1022 hPa</td><td>14.8 km/h (gusts 35.3)</td><td>None seen</td><td>None seen</td><td>28</td></tr><tr><td>Wed 12 Aug 2026</td><td>14.6&ndash;32.8&deg;C (avg 25.0&deg;C)</td><td>11.4&deg;C</td><td>1021&ndash;1024 hPa</td><td>11.5 km/h (gusts 32.8)</td><td>None seen</td><td>None seen</td><td>6</td></tr><tr><td>Tue 11 Aug 2026</td><td>13.4&ndash;27.6&deg;C (avg 20.9&deg;C)</td><td>9.7&deg;C</td><td>1022&ndash;1025 hPa</td><td>12.5 km/h (gusts 31.0)</td><td>None seen</td><td>None seen</td><td>7</td></tr><tr><td>Mon 10 Aug 2026</td><td>14.5&ndash;23.8&deg;C (avg 19.5&deg;C)</td><td>8.1&deg;C</td><td>1014&ndash;1023 hPa</td><td>11.8 km/h (gusts 31.7)</td><td>None seen</td><td>None seen</td><td>7</td></tr><tr><td>Sun 09 Aug 2026</td><td>11.8&ndash;28.1&deg;C (avg 20.9&deg;C)</td><td>9.4&deg;C</td><td>1012&ndash;1016 hPa</td><td>11.2 km/h (gusts 33.8)</td><td>None seen</td><td>None seen</td><td>14</td></tr><tr><td>Sat 08 Aug 2026</td><td>9.2&ndash;27.4&deg;C (avg 19.9&deg;C)</td><td>7.3&deg;C</td><td>1015&ndash;1022 hPa</td><td>9.5 km/h (gusts 31.3)</td><td>None seen</td><td>None seen</td><td>14</td></tr><tr><td>Fri 07 Aug 2026</td><td>9.7&ndash;22.5&deg;C (avg 17.9&deg;C)</td><td>6.6&deg;C</td><td>1022&ndash;1025 hPa</td><td>5.6 km/h (gusts 22.0)</td><td>None seen</td><td>None seen</td><td>12</td></tr><tr><td>Thu 06 Aug 2026</td><td>12.9&ndash;16.7&deg;C (avg 13.7&deg;C)</td><td>8.3&deg;C</td><td>1019&ndash;1023 hPa</td><td>11.1 km/h (gusts 38.2)</td><td>None seen</td><td>None seen</td><td>12</td></tr></tbody>
+      <tbody><tr><td>Thu 13 Aug 2026</td><td>18.1&ndash;35.9&deg;C (avg 31.9&deg;C)</td><td>10.4&deg;C</td><td>1017&ndash;1022 hPa</td><td>14.7 km/h (gusts 35.3)</td><td>None seen</td><td>None seen</td><td>29</td></tr><tr><td>Wed 12 Aug 2026</td><td>14.6&ndash;32.8&deg;C (avg 25.0&deg;C)</td><td>11.4&deg;C</td><td>1021&ndash;1024 hPa</td><td>11.5 km/h (gusts 32.8)</td><td>None seen</td><td>None seen</td><td>6</td></tr><tr><td>Tue 11 Aug 2026</td><td>13.4&ndash;27.6&deg;C (avg 20.9&deg;C)</td><td>9.7&deg;C</td><td>1022&ndash;1025 hPa</td><td>12.5 km/h (gusts 31.0)</td><td>None seen</td><td>None seen</td><td>7</td></tr><tr><td>Mon 10 Aug 2026</td><td>14.5&ndash;23.8&deg;C (avg 19.5&deg;C)</td><td>8.1&deg;C</td><td>1014&ndash;1023 hPa</td><td>11.8 km/h (gusts 31.7)</td><td>None seen</td><td>None seen</td><td>7</td></tr><tr><td>Sun 09 Aug 2026</td><td>11.8&ndash;28.1&deg;C (avg 20.9&deg;C)</td><td>9.4&deg;C</td><td>1012&ndash;1016 hPa</td><td>11.2 km/h (gusts 33.8)</td><td>None seen</td><td>None seen</td><td>14</td></tr><tr><td>Sat 08 Aug 2026</td><td>9.2&ndash;27.4&deg;C (avg 19.9&deg;C)</td><td>7.3&deg;C</td><td>1015&ndash;1022 hPa</td><td>9.5 km/h (gusts 31.3)</td><td>None seen</td><td>None seen</td><td>14</td></tr><tr><td>Fri 07 Aug 2026</td><td>9.7&ndash;22.5&deg;C (avg 17.9&deg;C)</td><td>6.6&deg;C</td><td>1022&ndash;1025 hPa</td><td>5.6 km/h (gusts 22.0)</td><td>None seen</td><td>None seen</td><td>12</td></tr><tr><td>Thu 06 Aug 2026</td><td>12.9&ndash;16.7&deg;C (avg 13.7&deg;C)</td><td>8.3&deg;C</td><td>1019&ndash;1023 hPa</td><td>11.1 km/h (gusts 38.2)</td><td>None seen</td><td>None seen</td><td>12</td></tr></tbody>
     </table>
   </div>
 
