@@ -88,7 +88,7 @@ def svg_sparkline(rows, key, width=640, height=220, colour="#1F3864", unit="", d
     if grid_max == grid_min:
         grid_max = grid_min + step
 
-    pad_left, pad_right, pad_top, pad_bottom = 46, 14, 16, 26
+    pad_left, pad_right, pad_top, pad_bottom = 58, 14, 16, 26
     plot_w = width - pad_left - pad_right
     plot_h = height - pad_top - pad_bottom
     n = len(points)
@@ -372,6 +372,16 @@ def location_switcher_html(locations, current_slug, view="dashboard"):
     </div>'''.format(options="".join(options))
 
 
+def find_location_path(locations, current_slug, key, default):
+    """Look up this location's own path for a given page type (e.g.
+    "reports_path") out of the shared locations nav list, so callers don't
+    need yet another explicit parameter threaded through every render()."""
+    for loc in (locations or []):
+        if loc.get("slug") == current_slug:
+            return loc.get(key, default)
+    return default
+
+
 def render(location_name, latest, rows, output_path, lat=None, lon=None, all_rows=None,
            locations=None, current_slug=None, history_path="history.html"):
     if all_rows is None:
@@ -382,6 +392,7 @@ def render(location_name, latest, rows, output_path, lat=None, lon=None, all_row
     generated_at = now_local().strftime("%a %d %b %Y, %H:%M")
     outlook_html = outlook_card_html(rows)
     loc_switcher_html = location_switcher_html(locations, current_slug, view="dashboard")
+    reports_path = find_location_path(locations, current_slug, "reports_path", "reports.html")
     frost_html = frost_banner_html(latest.get("frost_risk"))
     rainfall_html = rainfall_card_html(all_rows)
     moon_daylight_html = moon_daylight_card_html(latest)
@@ -486,7 +497,7 @@ def render(location_name, latest, rows, output_path, lat=None, lon=None, all_row
     <h1>{location_name}</h1>
     {loc_switcher_html}
   </div>
-  <div class="updated">Last updated {generated_at} &middot; <a href="{history_path}">View full history &rarr;</a> &middot; <a href="globe.html">&#127760; Cloud Globe</a></div>
+  <div class="updated">Last updated {generated_at} &middot; <a href="{history_path}">View full history &rarr;</a> &middot; <a href="{reports_path}">&#128196; Reports</a> &middot; <a href="globe.html">&#127760; Cloud Globe</a></div>
 
   {frost_html}
 
@@ -599,6 +610,7 @@ if ('serviceWorker' in navigator) {{
         outlook_html=outlook_html,
         loc_switcher_html=loc_switcher_html,
         history_path=history_path,
+        reports_path=reports_path,
         frost_html=frost_html,
         rainfall_html=rainfall_html,
         moon_daylight_html=moon_daylight_html,

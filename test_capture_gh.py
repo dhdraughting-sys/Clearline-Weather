@@ -113,8 +113,10 @@ class TestLocationPaths(unittest.TestCase):
             {"slug": "heathrow", "name": "Heathrow"},
         ]
         paths = capture.location_paths(locations)
-        self.assertEqual(paths["meriden"], {"dashboard": "index.html", "history": "history.html"})
-        self.assertEqual(paths["heathrow"], {"dashboard": "dashboard_heathrow.html", "history": "history_heathrow.html"})
+        self.assertEqual(paths["meriden"], {"dashboard": "index.html", "history": "history.html", "reports": "reports.html"})
+        self.assertEqual(paths["heathrow"], {
+            "dashboard": "dashboard_heathrow.html", "history": "history_heathrow.html", "reports": "reports_heathrow.html",
+        })
 
     def test_no_default_flag_falls_back_to_first_location(self):
         locations = [{"slug": "a", "name": "A"}, {"slug": "b", "name": "B"}]
@@ -124,7 +126,7 @@ class TestLocationPaths(unittest.TestCase):
 
     def test_single_location_always_gets_index_html(self):
         paths = capture.location_paths([{"slug": "meriden", "name": "Meriden"}])
-        self.assertEqual(paths["meriden"], {"dashboard": "index.html", "history": "history.html"})
+        self.assertEqual(paths["meriden"], {"dashboard": "index.html", "history": "history.html", "reports": "reports.html"})
 
 
 class TestMultiLocationCapture(unittest.TestCase):
@@ -151,10 +153,13 @@ class TestMultiLocationCapture(unittest.TestCase):
 
         self.assertTrue(os.path.exists("index.html"))
         self.assertTrue(os.path.exists("history.html"))
+        self.assertTrue(os.path.exists("reports.html"))
         self.assertTrue(os.path.exists("dashboard_heathrow.html"))
         self.assertTrue(os.path.exists("history_heathrow.html"))
+        self.assertTrue(os.path.exists("reports_heathrow.html"))
         self.assertTrue(os.path.exists("dashboard_la-rochelle.html"))
         self.assertTrue(os.path.exists("history_la-rochelle.html"))
+        self.assertTrue(os.path.exists("reports_la-rochelle.html"))
         self.assertTrue(os.path.exists(os.path.join("data", "meriden.csv")))
         self.assertTrue(os.path.exists(os.path.join("data", "heathrow.csv")))
         self.assertTrue(os.path.exists(os.path.join("data", "la-rochelle.csv")))

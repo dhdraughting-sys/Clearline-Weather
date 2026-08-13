@@ -25,6 +25,7 @@ from weather_lib import (
 )
 import dashboard
 import history
+import reports
 import globe
 from earth_texture import update_earth_texture_if_stale
 
@@ -44,9 +45,13 @@ def location_paths(locations):
     for loc in locations:
         slug = loc["slug"]
         if slug == default_slug:
-            paths[slug] = {"dashboard": "index.html", "history": "history.html"}
+            paths[slug] = {"dashboard": "index.html", "history": "history.html", "reports": "reports.html"}
         else:
-            paths[slug] = {"dashboard": "dashboard_{}.html".format(slug), "history": "history_{}.html".format(slug)}
+            paths[slug] = {
+                "dashboard": "dashboard_{}.html".format(slug),
+                "history": "history_{}.html".format(slug),
+                "reports": "reports_{}.html".format(slug),
+            }
     return paths
 
 
@@ -65,6 +70,7 @@ def main():
             "lon": loc["lon"],
             "dashboard_path": paths[loc["slug"]]["dashboard"],
             "history_path": paths[loc["slug"]]["history"],
+            "reports_path": paths[loc["slug"]]["reports"],
         }
         for loc in locations
     ]
@@ -74,6 +80,7 @@ def main():
         csv_path = "data/{}.csv".format(slug)
         output_path = paths[slug]["dashboard"]
         history_path = paths[slug]["history"]
+        reports_path = paths[slug]["reports"]
 
         print("[{}] fetching current conditions...".format(slug))
         try:
@@ -112,6 +119,12 @@ def main():
             locations=nav_locations, current_slug=slug, dashboard_path=output_path,
         )
         print("[{}] history page updated -> {}".format(slug, history_path))
+
+        reports.render(
+            loc["name"], all_rows, reports_path,
+            locations=nav_locations, current_slug=slug, dashboard_path=output_path,
+        )
+        print("[{}] reports page updated -> {}".format(slug, reports_path))
 
     # One shared globe page, not per-location - updated every run, but
     # the satellite image behind it only actually refreshes once a day

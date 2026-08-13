@@ -7,7 +7,7 @@ cutoff) and groups it by calendar day.
 
 import datetime
 
-from dashboard import fnum, location_switcher_html
+from dashboard import fnum, location_switcher_html, find_location_path
 
 
 def _floats(rows, key):
@@ -173,6 +173,7 @@ def render(location_name, rows, output_path, days_limit=180,
 
     records_html = records_card_html(summaries)
     loc_switcher_html = location_switcher_html(locations, current_slug, view="history")
+    reports_path = find_location_path(locations, current_slug, "reports_path", "reports.html")
 
     html = '''<!DOCTYPE html>
 <html lang="en">
@@ -228,7 +229,7 @@ def render(location_name, rows, output_path, days_limit=180,
     <h1>{location_name} &mdash; Full History</h1>
     {loc_switcher_html}
   </div>
-  <div class="updated">One row per day, newest first &middot; {total_days} day{plural} logged so far &middot; <a href="globe.html">&#127760; Cloud Globe</a></div>
+  <div class="updated">One row per day, newest first &middot; {total_days} day{plural} logged so far &middot; <a href="{reports_path}">&#128196; Reports</a> &middot; <a href="globe.html">&#127760; Cloud Globe</a></div>
   <a class="back-link" href="{dashboard_path}">&larr; Back to current conditions</a>
 
   {records_html}
@@ -267,6 +268,7 @@ if ('serviceWorker' in navigator) {{
         body_rows=body_rows,
         records_html=records_html,
         loc_switcher_html=loc_switcher_html,
+        reports_path=reports_path,
         dashboard_path=dashboard_path,
         shown_days=len(shown),
     )
