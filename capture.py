@@ -27,6 +27,7 @@ import dashboard
 import history
 import reports
 import globe
+import clouds
 from earth_texture import update_earth_texture_if_stale
 
 HISTORY_HOURS = 48
@@ -75,7 +76,7 @@ def main():
         for loc in locations
     ]
 
-    for loc in locations:
+    for idx, loc in enumerate(locations):
         slug = loc["slug"]
         csv_path = "data/{}.csv".format(slug)
         output_path = paths[slug]["dashboard"]
@@ -99,6 +100,12 @@ def main():
             print("[{}] air quality fetch failed (non-fatal): {}".format(slug, e), file=sys.stderr)
             aqi_reading = {"aqi": None, "pm2_5": None, "pm10": None}
         reading.update(aqi_reading)
+
+        # Stash this run's live weather_code/cloud_pct onto the shared nav
+        # list so clouds.py's "right now" strip has something to work
+        # with, without needing its own separate fetch.
+        nav_locations[idx]["weather_code"] = reading.get("weather_code")
+        nav_locations[idx]["cloud_pct"] = reading.get("cloud_pct")
 
         added = append_reading(csv_path, reading)
         print("[{}] {} (temp {}C, pressure {}hPa)".format(
@@ -137,6 +144,14 @@ def main():
         texture_meta = read_texture_meta()
     globe.render(nav_locations, texture_meta=texture_meta)
     print("[globe] globe page updated -> globe.html (imagery date: {})".format(texture_meta.get("image_date")))
+
+    # Also shared, not per-location. Guarded like the globe/texture calls
+    # above - a bug here shouldn't be able to take down the whole run.
+    try:
+        clouds.render(nav_locations)
+        print("[clouds] cloud learning portal updated -> clouds.html")
+    except Exception as e:
+        print("[clouds] cloud guide update failed (non-fatal): {}".format(e), file=sys.stderr)
 
     if any_errors:
         sys.exit(1)

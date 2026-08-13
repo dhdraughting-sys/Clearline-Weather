@@ -229,7 +229,7 @@ def render(location_name, rows, output_path, days_limit=180,
     <h1>{location_name} &mdash; Full History</h1>
     {loc_switcher_html}
   </div>
-  <div class="updated">One row per day, newest first &middot; {total_days} day{plural} logged so far &middot; <a href="{reports_path}">&#128196; Reports</a> &middot; <a href="globe.html">&#127760; Cloud Globe</a></div>
+  <div class="updated">One row per day, newest first &middot; {total_days} day{plural} logged so far &middot; <a href="{reports_path}">&#128196; Reports</a> &middot; <a href="globe.html">&#127760; Cloud Globe</a> &middot; <a href="clouds.html">&#9729;&#65039; Cloud Guide</a></div>
   <a class="back-link" href="{dashboard_path}">&larr; Back to current conditions</a>
 
   {records_html}

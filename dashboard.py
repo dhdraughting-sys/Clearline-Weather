@@ -497,7 +497,7 @@ def render(location_name, latest, rows, output_path, lat=None, lon=None, all_row
     <h1>{location_name}</h1>
     {loc_switcher_html}
   </div>
-  <div class="updated">Last updated {generated_at} &middot; <a href="{history_path}">View full history &rarr;</a> &middot; <a href="{reports_path}">&#128196; Reports</a> &middot; <a href="globe.html">&#127760; Cloud Globe</a></div>
+  <div class="updated">Last updated {generated_at} &middot; <a href="{history_path}">View full history &rarr;</a> &middot; <a href="{reports_path}">&#128196; Reports</a> &middot; <a href="globe.html">&#127760; Cloud Globe</a> &middot; <a href="clouds.html">&#9729;&#65039; Cloud Guide</a></div>
 
   {frost_html}
 

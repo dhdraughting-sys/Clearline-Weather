@@ -160,6 +160,8 @@ class TestMultiLocationCapture(unittest.TestCase):
         self.assertTrue(os.path.exists("dashboard_la-rochelle.html"))
         self.assertTrue(os.path.exists("history_la-rochelle.html"))
         self.assertTrue(os.path.exists("reports_la-rochelle.html"))
+        self.assertTrue(os.path.exists("globe.html"))
+        self.assertTrue(os.path.exists("clouds.html"))
         self.assertTrue(os.path.exists(os.path.join("data", "meriden.csv")))
         self.assertTrue(os.path.exists(os.path.join("data", "heathrow.csv")))
         self.assertTrue(os.path.exists(os.path.join("data", "la-rochelle.csv")))
@@ -174,6 +176,13 @@ class TestMultiLocationCapture(unittest.TestCase):
         self.assertIn("dashboard_la-rochelle.html", index_content)
         self.assertIn("London Heathrow", index_content)
         self.assertIn("La Rochelle, France", index_content)
+        self.assertIn("clouds.html", index_content)
+
+        with open("clouds.html", encoding="utf-8") as f:
+            clouds_content = f.read()
+        self.assertIn("Meriden, CV7 7HT", clouds_content)
+        self.assertIn("London Heathrow", clouds_content)
+        self.assertIn("La Rochelle, France", clouds_content)
 
         with open("dashboard_heathrow.html", encoding="utf-8") as f:
             heathrow_content = f.read()

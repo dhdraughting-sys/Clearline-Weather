@@ -106,7 +106,7 @@ def render(locations, output_path="globe.html", texture_path="data/earth_texture
 <div class="wrap">
   <span class="eyebrow">Personal Weather Log</span>
   <h1>Cloud Globe</h1>
-  <a class="back-link" href="{back_path}">&larr; Back to current conditions</a>
+  <a class="back-link" href="{back_path}">&larr; Back to current conditions</a> &middot; <a class="back-link" href="clouds.html">&#9729;&#65039; Cloud Guide</a>
 
   <div class="globe-card">
     <div class="globe-canvas-wrap" id="globe-canvas-wrap">
