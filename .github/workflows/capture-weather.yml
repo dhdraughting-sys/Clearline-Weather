@@ -3,9 +3,16 @@ name: Capture weather
 # Runs on GitHub's own servers, on a schedule - completely independent of
 # whether your PC is on. "workflow_dispatch" also lets you trigger a run
 # by hand from the Actions tab any time, e.g. to test this.
+#
+# The schedule below is offset to 7/22/37/52 minutes past the hour rather
+# than the "obvious" 0/15/30/45 marks. GitHub Actions scheduled runs are
+# best-effort and get delayed most often right on the hour/quarter-hour,
+# because that's when every scheduled workflow on the whole platform tries
+# to fire at once. Running slightly off those marks avoids that peak
+# congestion and should keep captures closer to a real 15-minute cadence.
 on:
   schedule:
-   - cron: "7,22,37,52 * * * *"
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch: {}
 
 # Needed so the workflow is allowed to commit/push the updated log + page
@@ -30,7 +37,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/ index.html history.html
+          git add -A
           if git diff --cached --quiet; then
             echo "Nothing new this run - skipping commit."
           else
