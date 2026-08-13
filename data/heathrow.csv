@@ -1,3 +1,4 @@
 captured_at,api_time,temp_c,apparent_c,dew_point_c,humidity_pct,pressure_msl_hpa,surface_pressure_hpa,wind_kph,wind_dir_deg,gusts_kph,precip_mm,rain_mm,snowfall_cm,cloud_pct,uv_index,visibility_m,weather_code,is_day,sunrise,sunset,aqi,pm2_5,pm10
 2026-08-13T22:00:51,2026-08-13T22:00,26.8,25.5,9.6,34,1019.0,1016.0,7.9,228,15.8,0.0,0.0,0.0,0,0.0,25620.0,0,0,05:44,20:28,35,9.5,15.4
 2026-08-13T22:15:31,2026-08-13T22:15,26.4,25.2,9.7,35,1019.0,1016.0,7.9,223,15.5,0.0,0.0,0.0,0,0.0,25620.0,0,0,05:44,20:28,35,9.5,15.4
+2026-08-13T22:30:39,2026-08-13T22:30,26.6,25.1,9.0,33,1018.9,1015.9,8.6,223,16.9,0.0,0.0,0.0,0,0.0,27520.0,0,0,05:44,20:28,35,9.5,15.4
