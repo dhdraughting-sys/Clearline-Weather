@@ -256,6 +256,94 @@ def frost_banner_html(frost_risk):
     )
 
 
+def rain_forecast_svg(rain_forecast, width=640, height=190):
+    """A hand-rolled SVG bar chart of the next few hours' forecast rain
+    (mm per hour), with each bar's chance-of-rain percentage labelled
+    above it - same house style as the sparklines, but bars rather than a
+    line since this is a per-hour forecast rather than a continuous
+    measured series."""
+    hours = rain_forecast.get("hours") if rain_forecast else None
+    if not hours:
+        return '<div class="no-data">Not enough forecast data yet for an hourly rain chart.</div>'
+
+    pad_left, pad_right, pad_top, pad_bottom = 40, 14, 22, 26
+    plot_w = width - pad_left - pad_right
+    plot_h = height - pad_top - pad_bottom
+    n = len(hours)
+
+    max_mm = max((h["precip_mm"] for h in hours), default=0.0)
+    axis_max = _nice_axis_step(max_mm) if max_mm > 0 else 1.0
+    while axis_max < max_mm:
+        axis_max += _nice_axis_step(max_mm)
+
+    slot_w = plot_w / n
+    bar_w = slot_w * 0.55
+
+    def y_for(mm):
+        return pad_top + plot_h - (mm / axis_max) * plot_h if axis_max else pad_top + plot_h
+
+    bars_html = []
+    labels_html = []
+    for i, h in enumerate(hours):
+        cx = pad_left + slot_w * (i + 0.5)
+        mm = h["precip_mm"]
+        bar_h = plot_h - (y_for(mm) - pad_top)
+        bar_y = y_for(mm)
+        colour = "#1F3864" if mm > 0 else "#DCE6F1"
+        bars_html.append(
+            '<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" rx="3" fill="{colour}" />'.format(
+                x=cx - bar_w / 2, y=bar_y, w=bar_w, h=max(bar_h, 0), colour=colour,
+            )
+        )
+        if h.get("probability_pct") not in (None, ""):
+            bars_html.append(
+                '<text x="{x:.1f}" y="{y:.1f}" class="chart-axis-label" text-anchor="middle">{pct:.0f}%</text>'.format(
+                    x=cx, y=max(bar_y - 6, pad_top - 4), pct=float(h["probability_pct"]),
+                )
+            )
+        labels_html.append(
+            '<text x="{x:.1f}" y="{y}" class="chart-axis-label" text-anchor="middle">{label}</text>'.format(
+                x=cx, y=height - 6, label=h["time"],
+            )
+        )
+
+    baseline_y = y_for(0)
+    baseline_html = '<line x1="{pl}" y1="{y:.1f}" x2="{right}" y2="{y:.1f}" stroke="#DCE6F1" stroke-width="1" />'.format(
+        pl=pad_left, right=width - pad_right, y=baseline_y,
+    )
+
+    return '''<svg viewBox="0 0 {w} {h}" class="sparkline" preserveAspectRatio="xMidYMid meet">
+      {baseline_html}
+      {bars_html}
+      {labels_html}
+    </svg>'''.format(
+        w=width, h=height, baseline_html=baseline_html,
+        bars_html="".join(bars_html), labels_html="".join(labels_html),
+    )
+
+
+def rain_forecast_card_html(rain_forecast):
+    """Card wrapping the hourly rain forecast chart - a genuine short-range
+    forecast built from Open-Meteo's own hourly precipitation/probability
+    data, distinct from the Windy radar card which only shows near-real-time
+    conditions rather than predicting ahead."""
+    if not rain_forecast or not rain_forecast.get("hours"):
+        note = "Hourly rain forecast will appear here once there's enough forecast data."
+    elif rain_forecast.get("rain_expected"):
+        note = "Rain expected from around {} — up to {} mm/h, {} chance at the wettest hour.".format(
+            rain_forecast.get("next_wet_hour") or "soon",
+            fnum(rain_forecast.get("max_precip_mm"), 1),
+            "{:.0f}%".format(rain_forecast["max_probability_pct"]) if rain_forecast.get("max_probability_pct") is not None else "unknown",
+        )
+    else:
+        note = "No rain expected over the next few hours."
+    return '''<div class="card">
+      <h2>Hourly rain forecast</h2>
+      {svg}
+      <div class="table-note">{note} Forecast from Open-Meteo's model, not your own logged readings.</div>
+    </div>'''.format(svg=rain_forecast_svg(rain_forecast), note=note)
+
+
 def rainfall_card_html(all_rows):
     """Rainfall totals card — today / last 7 days / this month / this year,
     summed from the *full* log (not just the last 48h chart window)."""
@@ -394,6 +482,7 @@ def render(location_name, latest, rows, output_path, lat=None, lon=None, all_row
     loc_switcher_html = location_switcher_html(locations, current_slug, view="dashboard")
     reports_path = find_location_path(locations, current_slug, "reports_path", "reports.html")
     frost_html = frost_banner_html(latest.get("frost_risk"))
+    rain_forecast_html = rain_forecast_card_html(latest.get("rain_forecast"))
     rainfall_html = rainfall_card_html(all_rows)
     moon_daylight_html = moon_daylight_card_html(latest)
     wind_rose_html = wind_rose_card_html(rows)
@@ -530,10 +619,12 @@ def render(location_name, latest, rows, output_path, lat=None, lon=None, all_row
 
   {outlook_html}
 
+  {rain_forecast_html}
+
   <div class="card">
-    <h2>Live rain radar</h2>
-    <iframe class="radar-frame" src="https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&zoom=8&level=surface&overlay=radar&menu=&message=true&marker=true&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1" loading="lazy" title="Live rain radar"></iframe>
-    <div class="table-note">Live radar from Windy.com, not generated from your own readings — useful for seeing rain approaching on the map.</div>
+    <h2>Rain forecast radar</h2>
+    <iframe class="radar-frame" src="https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&zoom=8&level=surface&overlay=rain&menu=&message=true&marker=true&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1" loading="lazy" title="Rain forecast radar"></iframe>
+    <div class="table-note">Forecast precipitation map from Windy.com — use the timeline at the bottom of the map to scrub forward and see rain approaching over the next few hours.</div>
   </div>
 
   {rainfall_html}
@@ -612,6 +703,7 @@ if ('serviceWorker' in navigator) {{
         history_path=history_path,
         reports_path=reports_path,
         frost_html=frost_html,
+        rain_forecast_html=rain_forecast_html,
         rainfall_html=rainfall_html,
         moon_daylight_html=moon_daylight_html,
         wind_rose_html=wind_rose_html,

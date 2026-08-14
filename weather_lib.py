@@ -47,7 +47,12 @@ CURRENT_VARS = [
 # current hour's `hourly` value instead. temperature_2m is also pulled
 # hourly (in addition to the `current` block's own reading) purely so we
 # have a short run of upcoming hours to scan for overnight frost risk.
-HOURLY_EXTRA_VARS = ["uv_index", "visibility", "temperature_2m"]
+# precipitation/precipitation_probability power the short-range rain
+# forecast strip on the dashboard - see _hourly_rain_forecast() below.
+HOURLY_EXTRA_VARS = [
+    "uv_index", "visibility", "temperature_2m", "precipitation", "precipitation_probability",
+]
+RAIN_FORECAST_HOURS_AHEAD = 8
 
 CSV_FIELDS = [
     "captured_at", "api_time", "temp_c", "apparent_c", "dew_point_c",
@@ -61,7 +66,7 @@ CSV_FIELDS = [
 # the dashboard right now but deliberately NOT stored in the CSV log - things
 # derived from a forecast (like frost risk) rather than a measurement, so
 # logging them wouldn't mean anything looking back at old rows.
-_NON_CSV_READING_KEYS = {"frost_risk"}
+_NON_CSV_READING_KEYS = {"frost_risk", "rain_forecast"}
 
 # Rough mapping of Open-Meteo's WMO weather_code to a short label + emoji,
 # just for the dashboard - not exhaustive, falls back to the raw code.
@@ -95,7 +100,10 @@ def fetch_current(lat, lon, timeout=20):
         "current": ",".join(CURRENT_VARS),
         "hourly": ",".join(HOURLY_EXTRA_VARS),
         "daily": "sunrise,sunset",
-        "forecast_days": 1,
+        "forecast_days": 2,  # 1 would leave very few hours of hourly data
+        # left once it gets late in the day - 2 guarantees a full
+        # RAIN_FORECAST_HOURS_AHEAD window (and the frost-risk scan below)
+        # regardless of what time this actually runs.
         "timezone": "Europe/London",
     }
     url = "{}?{}".format(FORECAST_URL, urllib.parse.urlencode(params))
@@ -139,6 +147,9 @@ def fetch_current(lat, lon, timeout=20):
     sunset = sunset_list[0][-5:] if sunset_list else None
 
     frost = _frost_risk_from_hourly(hourly_times, hourly.get("temperature_2m", []), api_time)
+    rain_forecast = _hourly_rain_forecast(
+        hourly_times, hourly.get("precipitation", []), hourly.get("precipitation_probability", []), api_time,
+    )
 
     captured_at_local = now_local().isoformat(timespec="seconds")
 
@@ -165,6 +176,7 @@ def fetch_current(lat, lon, timeout=20):
         "sunrise": sunrise,
         "sunset": sunset,
         "frost_risk": frost,
+        "rain_forecast": rain_forecast,
     }
 
 
@@ -203,6 +215,55 @@ def _frost_risk_from_hourly(hourly_times, hourly_temps, api_time, hours_ahead=24
         "at_risk": coldest_temp <= FROST_RISK_THRESHOLD_C,
         "min_temp_c": coldest_temp,
         "min_temp_time": coldest_time.strftime("%a %H:%M") if coldest_time else None,
+    }
+
+
+def _hourly_rain_forecast(hourly_times, hourly_precip, hourly_prob, api_time, hours_ahead=RAIN_FORECAST_HOURS_AHEAD):
+    """Next `hours_ahead` hours of forecast rain, starting from the current
+    hour - powers the dashboard's own hourly rain chart (an actual forecast,
+    unlike the Windy radar card which only shows near-real-time conditions).
+    Returns None if there isn't enough data, otherwise a dict with a list of
+    per-hour points plus a couple of "at a glance" summary fields."""
+    if not hourly_times or not api_time:
+        return None
+    try:
+        now_dt = datetime.datetime.fromisoformat(api_time)
+    except ValueError:
+        return None
+    current_hour = now_dt.replace(minute=0, second=0, microsecond=0)
+
+    hours = []
+    for i, t in enumerate(hourly_times):
+        try:
+            t_dt = datetime.datetime.fromisoformat(t)
+        except ValueError:
+            continue
+        if t_dt < current_hour:
+            continue
+        precip = hourly_precip[i] if i < len(hourly_precip) else None
+        prob = hourly_prob[i] if i < len(hourly_prob) else None
+        hours.append({
+            "time": t_dt.strftime("%H:%M"),
+            "label": t_dt.strftime("%a %H:%M"),
+            "precip_mm": precip if precip is not None else 0.0,
+            "probability_pct": prob,
+        })
+        if len(hours) >= hours_ahead:
+            break
+
+    if not hours:
+        return None
+
+    max_precip = max((h["precip_mm"] for h in hours), default=0.0)
+    max_prob = max((h["probability_pct"] for h in hours if h["probability_pct"] is not None), default=None)
+    next_wet = next((h for h in hours if h["precip_mm"] and h["precip_mm"] > 0), None)
+
+    return {
+        "hours": hours,
+        "max_precip_mm": round(max_precip, 1),
+        "max_probability_pct": max_prob,
+        "rain_expected": max_precip > 0,
+        "next_wet_hour": next_wet["time"] if next_wet else None,
     }
 
 

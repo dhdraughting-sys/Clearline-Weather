@@ -254,6 +254,49 @@ class TestFrostRisk(unittest.TestCase):
         self.assertIsNone(weather_lib._frost_risk_from_hourly(["x"], [1.0], None))
 
 
+class TestHourlyRainForecast(unittest.TestCase):
+    def test_dry_spell_reports_no_rain_expected(self):
+        times = ["2026-01-05T14:00", "2026-01-05T15:00", "2026-01-05T16:00"]
+        precip = [0.0, 0.0, 0.0]
+        prob = [5, 10, 0]
+        forecast = weather_lib._hourly_rain_forecast(times, precip, prob, "2026-01-05T14:00", hours_ahead=3)
+        self.assertFalse(forecast["rain_expected"])
+        self.assertIsNone(forecast["next_wet_hour"])
+        self.assertEqual(len(forecast["hours"]), 3)
+
+    def test_upcoming_rain_is_flagged_with_the_first_wet_hour(self):
+        times = ["2026-01-05T14:00", "2026-01-05T15:00", "2026-01-05T16:00", "2026-01-05T17:00"]
+        precip = [0.0, 0.0, 1.2, 0.4]
+        prob = [5, 20, 80, 60]
+        forecast = weather_lib._hourly_rain_forecast(times, precip, prob, "2026-01-05T14:00", hours_ahead=4)
+        self.assertTrue(forecast["rain_expected"])
+        self.assertEqual(forecast["next_wet_hour"], "16:00")
+        self.assertEqual(forecast["max_precip_mm"], 1.2)
+        self.assertEqual(forecast["max_probability_pct"], 80)
+
+    def test_only_looks_forward_from_the_current_hour(self):
+        # An hour that's already passed shouldn't count towards the window
+        # or skew the "next wet hour" - only current-hour-onward matters.
+        times = ["2026-01-05T13:00", "2026-01-05T14:00", "2026-01-05T15:00"]
+        precip = [5.0, 0.0, 0.0]  # the heavy rain already happened, at 13:00
+        prob = [90, 10, 5]
+        forecast = weather_lib._hourly_rain_forecast(times, precip, prob, "2026-01-05T14:00", hours_ahead=2)
+        self.assertFalse(forecast["rain_expected"])
+        self.assertEqual(len(forecast["hours"]), 2)
+        self.assertEqual(forecast["hours"][0]["time"], "14:00")
+
+    def test_respects_hours_ahead_limit(self):
+        times = ["2026-01-05T{:02d}:00".format(h) for h in range(14, 22)]
+        precip = [0.0] * 8
+        prob = [0] * 8
+        forecast = weather_lib._hourly_rain_forecast(times, precip, prob, "2026-01-05T14:00", hours_ahead=3)
+        self.assertEqual(len(forecast["hours"]), 3)
+
+    def test_no_data_returns_none(self):
+        self.assertIsNone(weather_lib._hourly_rain_forecast([], [], [], "2026-01-05T14:00"))
+        self.assertIsNone(weather_lib._hourly_rain_forecast(["x"], [1.0], [50], None))
+
+
 class TestAirQuality(unittest.TestCase):
     def _mock_response(self, aqi=35, pm2_5=8.0, pm10=15.0):
         payload = {"current": {"european_aqi": aqi, "pm2_5": pm2_5, "pm10": pm10}}
@@ -389,6 +432,18 @@ class TestAppendReadingWithFrostRisk(unittest.TestCase):
         rows = weather_lib.load_all(self.csv_path)
         self.assertEqual(len(rows), 1)
         self.assertNotIn("frost_risk", rows[0], "non-CSV key should not leak into the CSV header/row")
+
+    def test_reading_with_rain_forecast_key_does_not_crash(self):
+        reading = {k: None for k in weather_lib.CSV_FIELDS}
+        reading.update({
+            "captured_at": "2026-01-05T14:00:00", "api_time": "2026-01-05T14:00",
+            "temp_c": 1.0, "rain_forecast": {"rain_expected": True, "hours": [{"time": "15:00", "precip_mm": 1.0}]},
+        })
+        added = weather_lib.append_reading(self.csv_path, reading)
+        self.assertTrue(added)
+        rows = weather_lib.load_all(self.csv_path)
+        self.assertEqual(len(rows), 1)
+        self.assertNotIn("rain_forecast", rows[0], "non-CSV key should not leak into the CSV header/row")
 
 
 if __name__ == "__main__":
