@@ -29,5 +29,11 @@
     "name": "La Rochelle, France",
     "lat": 46.1603,
     "lon": -1.1511
+  },
+  {
+    "slug": "kingshurst",
+    "name": "Kingshurst, B36 0LG",
+    "lat": 52.496546,
+    "lon": -1.747262
   }
 ]
