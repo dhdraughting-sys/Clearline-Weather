@@ -1,0 +1,71 @@
+name: Capture weather
+
+# Runs on GitHub's own servers, on a schedule - completely independent of
+# whether your PC is on. "workflow_dispatch" also lets you trigger a run
+# by hand from the Actions tab any time, e.g. to test this.
+#
+# The schedule below is offset to 7/22/37/52 minutes past the hour rather
+# than the "obvious" 0/15/30/45 marks. GitHub Actions scheduled runs are
+# best-effort and get delayed most often right on the hour/quarter-hour,
+# because that's when every scheduled workflow on the whole platform tries
+# to fire at once. Running slightly off those marks avoids that peak
+# congestion and should keep captures closer to a real 15-minute cadence.
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch: {}
+
+# An external cron-job.org schedule also pings this workflow (via
+# workflow_dispatch) roughly every 15 minutes, as a backup in case
+# GitHub's own "schedule" trigger above gets delayed or silently skipped
+# (a known GitHub Actions quirk on free scheduled workflows). That means
+# two runs can sometimes be triggered close together. Without this,
+# they'd race: both fetch and commit locally, but only the first to
+# reach "git push" succeeds - the second gets rejected because the
+# remote has already moved on, and the whole run fails (which is what
+# was sending the "Capture weather failed" emails, even though no data
+# was actually lost - the other run's push already covered it).
+#
+# This queues a second run instead of letting it start in parallel, so
+# there's nothing left to race.
+concurrency:
+  group: capture-weather
+  cancel-in-progress: false
+
+# Needed so the workflow is allowed to commit/push the updated log + page
+# back into this same repo.
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch current weather and rebuild the dashboard
+        run: python capture.py
+
+      - name: Commit and push if anything changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing new this run - skipping commit."
+          else
+            git commit -m "Weather update: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            # Belt-and-braces on top of the concurrency queue above: if a
+            # push is ever still rejected because another run snuck in,
+            # rebase onto the new remote tip and retry once rather than
+            # failing the whole run.
+            if ! git push; then
+              echo "Push rejected - rebasing onto latest remote and retrying once..."
+              git pull --rebase
+              git push
+            fi
+          fi
