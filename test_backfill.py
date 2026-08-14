@@ -103,7 +103,7 @@ class TestBackfillIfNeeded(unittest.TestCase):
     def test_backfills_brand_new_location(self):
         resp = make_archive_response(["2026-07-01", "2026-07-02"])
         with unittest.mock.patch("urllib.request.urlopen", return_value=resp):
-            added = backfill.backfill_if_needed(self.csv_path, 52.5, -1.7, row_threshold=20, days=2)
+            added = backfill.backfill_if_needed(self.csv_path, 52.5, -1.7, days=2)
 
         self.assertEqual(added, 48)
         with open(self.csv_path, newline="", encoding="utf-8") as f:
@@ -112,17 +112,44 @@ class TestBackfillIfNeeded(unittest.TestCase):
         self.assertEqual(rows[0]["captured_at"], "2026-07-01T00:00")
         self.assertEqual(rows[-1]["captured_at"], "2026-07-02T23:00")
 
-    def test_skips_location_that_already_has_a_real_log(self):
+    def test_writes_a_marker_file_after_backfilling(self):
+        resp = make_archive_response(["2026-07-01"])
+        with unittest.mock.patch("urllib.request.urlopen", return_value=resp):
+            backfill.backfill_if_needed(self.csv_path, 52.5, -1.7, days=1)
+        self.assertTrue(os.path.exists(self.csv_path + ".backfilled"))
+
+    def test_skips_location_that_already_has_a_marker_regardless_of_row_count(self):
+        # This is the actual bug that hit Kingshurst: a location can
+        # accumulate plenty of live rows before this code ever gets a
+        # chance to run for the first time. A location with only ONE row
+        # but an existing marker must still be skipped - "already handled"
+        # is tracked explicitly, never guessed from the row count.
+        with open(self.csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=backfill.CSV_FIELDS)
+            writer.writeheader()
+            writer.writerow({"captured_at": "2026-08-14T09:00", "temp_c": 20.0})
+        with open(self.csv_path + ".backfilled", "w", encoding="utf-8") as f:
+            f.write("already done\n")
+
+        with unittest.mock.patch("urllib.request.urlopen") as mock_urlopen:
+            added = backfill.backfill_if_needed(self.csv_path, 52.5, -1.7, days=2)
+            mock_urlopen.assert_not_called()
+        self.assertEqual(added, 0)
+
+    def test_a_location_with_many_live_rows_but_no_marker_still_gets_backfilled(self):
+        # The inverse of the old (buggy) behaviour: lots of existing rows
+        # must NOT be treated as "already backfilled" if the marker was
+        # never actually written.
         with open(self.csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=backfill.CSV_FIELDS)
             writer.writeheader()
             for i in range(25):
-                writer.writerow({"captured_at": "2026-08-01T{:02d}:00".format(i % 24), "temp_c": 12.0})
+                writer.writerow({"captured_at": "2026-08-14T{:02d}:00".format(i % 24), "temp_c": 12.0})
 
-        with unittest.mock.patch("urllib.request.urlopen") as mock_urlopen:
-            added = backfill.backfill_if_needed(self.csv_path, 52.5, -1.7, row_threshold=20, days=2)
-            mock_urlopen.assert_not_called()
-        self.assertEqual(added, 0)
+        resp = make_archive_response(["2026-07-01"])
+        with unittest.mock.patch("urllib.request.urlopen", return_value=resp):
+            added = backfill.backfill_if_needed(self.csv_path, 52.5, -1.7, days=1)
+        self.assertEqual(added, 24)
 
     def test_existing_row_wins_over_historical_on_timestamp_clash(self):
         # A live capture already logged this exact hour with a real
@@ -135,7 +162,7 @@ class TestBackfillIfNeeded(unittest.TestCase):
 
         resp = make_archive_response(["2026-07-01"], base_temp=1.0)
         with unittest.mock.patch("urllib.request.urlopen", return_value=resp):
-            backfill.backfill_if_needed(self.csv_path, 52.5, -1.7, row_threshold=20, days=1)
+            backfill.backfill_if_needed(self.csv_path, 52.5, -1.7, days=1)
 
         with open(self.csv_path, newline="", encoding="utf-8") as f:
             rows = list(csv.DictReader(f))
@@ -146,17 +173,25 @@ class TestBackfillIfNeeded(unittest.TestCase):
     def test_rows_written_in_chronological_order(self):
         resp = make_archive_response(["2026-07-03", "2026-07-01", "2026-07-02"])
         with unittest.mock.patch("urllib.request.urlopen", return_value=resp):
-            backfill.backfill_if_needed(self.csv_path, 52.5, -1.7, row_threshold=20, days=3)
+            backfill.backfill_if_needed(self.csv_path, 52.5, -1.7, days=3)
         with open(self.csv_path, newline="", encoding="utf-8") as f:
             rows = list(csv.DictReader(f))
         timestamps = [r["captured_at"] for r in rows]
         self.assertEqual(timestamps, sorted(timestamps))
 
-    def test_empty_archive_response_returns_zero_added(self):
+    def test_empty_archive_response_still_writes_marker_so_it_only_tries_once(self):
         empty = make_archive_response([])
         with unittest.mock.patch("urllib.request.urlopen", return_value=empty):
-            added = backfill.backfill_if_needed(self.csv_path, 52.5, -1.7, row_threshold=20, days=1)
+            added = backfill.backfill_if_needed(self.csv_path, 52.5, -1.7, days=1)
         self.assertEqual(added, 0)
+        self.assertTrue(os.path.exists(self.csv_path + ".backfilled"))
+
+    def test_network_error_does_not_write_marker_so_it_retries_next_run(self):
+        import urllib.error
+        with unittest.mock.patch("urllib.request.urlopen", side_effect=urllib.error.URLError("boom")):
+            with self.assertRaises(RuntimeError):
+                backfill.backfill_if_needed(self.csv_path, 52.5, -1.7, days=1)
+        self.assertFalse(os.path.exists(self.csv_path + ".backfilled"))
 
 
 if __name__ == "__main__":

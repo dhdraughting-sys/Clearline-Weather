@@ -15,11 +15,15 @@ Uses Open-Meteo's free Historical Weather API (https://open-meteo.com/en/docs/hi
   blank on backfilled rows, same as they already are on any live reading
   where the AQ fetch happened to fail.
 
-Only ever does anything when a location's CSV log looks brand new (very
-few rows logged so far) - once real 15-minute captures have built up a
-proper history, backfill_if_needed() is a no-op. That means it's safe to
-leave wired into every run permanently, rather than needing to be run
-once and then removed.
+Tracked with a small marker file (data/<slug>.backfilled) rather than by
+guessing from the CSV's row count - a location can easily rack up 20+
+live rows before this code even gets deployed and first runs (exactly
+what happened to Kingshurst: added, then several unrelated fixes shipped
+before this went live, by which point normal 15-minute captures had
+already logged more rows than a naive "looks new" threshold would allow,
+permanently skipping it). The marker means backfill runs exactly once
+per location, whenever it first gets the chance to, regardless of
+timing - not "once, but only if it's fast enough".
 """
 
 import csv
@@ -42,11 +46,11 @@ ARCHIVE_HOURLY_VARS = [
     "uv_index", "visibility",
 ]
 
-# Fewer logged rows than this -> treat the location as brand new and
-# worth backfilling. A location capturing every ~15 minutes crosses this
-# within a couple of hours, so in practice this only ever fires once.
-BACKFILL_ROW_THRESHOLD = 20
 BACKFILL_DAYS = 30
+
+
+def _marker_path(csv_path):
+    return csv_path + ".backfilled"
 
 
 def _existing_rows(csv_path):
@@ -135,20 +139,24 @@ def fetch_historical(lat, lon, days=BACKFILL_DAYS, timeout=30):
     return readings
 
 
-def backfill_if_needed(csv_path, lat, lon, row_threshold=BACKFILL_ROW_THRESHOLD, days=BACKFILL_DAYS):
-    """If this location's log looks brand new, fetch `days` days of
-    historical hourly data and merge it in - any already-logged row wins
-    over a historical one on a matching timestamp, so this never
-    overwrites real captured data. Returns how many historical rows were
-    added (0 if backfill wasn't needed, or nothing came back)."""
-    existing = _existing_rows(csv_path)
-    if len(existing) >= row_threshold:
+def backfill_if_needed(csv_path, lat, lon, days=BACKFILL_DAYS):
+    """Backfills this location exactly once, whenever it first gets the
+    chance to run - tracked via a marker file, not the CSV's current row
+    count (see the module docstring for why that matters). Any
+    already-logged row wins over a historical one on a matching
+    timestamp, so this never overwrites real captured data. Returns how
+    many historical rows were added (0 if already done, or nothing came
+    back from the API)."""
+    marker = _marker_path(csv_path)
+    if os.path.exists(marker):
         return 0
 
+    # Deliberately not caught here - if this raises (network hiccup etc),
+    # capture.py's caller catches it and logs a non-fatal warning, and the
+    # marker below never gets written, so the next run just tries again.
     historical = fetch_historical(lat, lon, days=days)
-    if not historical:
-        return 0
 
+    existing = _existing_rows(csv_path)
     by_captured_at = {r["captured_at"]: r for r in historical}
     for row in existing:
         by_captured_at[row.get("captured_at")] = row  # real logged data always wins
@@ -156,10 +164,14 @@ def backfill_if_needed(csv_path, lat, lon, row_threshold=BACKFILL_ROW_THRESHOLD,
     merged = sorted(by_captured_at.values(), key=lambda r: r.get("captured_at", ""))
 
     os.makedirs(os.path.dirname(csv_path) or ".", exist_ok=True)
-    with open(csv_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
-        writer.writeheader()
-        for row in merged:
-            writer.writerow({k: ("" if row.get(k) in (None, "") else row.get(k)) for k in CSV_FIELDS})
+    if merged:
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+            writer.writeheader()
+            for row in merged:
+                writer.writerow({k: ("" if row.get(k) in (None, "") else row.get(k)) for k in CSV_FIELDS})
+
+    with open(marker, "w", encoding="utf-8") as f:
+        f.write("Backfilled {} historical rows.\n".format(len(historical)))
 
     return len(historical)
