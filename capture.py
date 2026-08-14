@@ -28,6 +28,7 @@ import history
 import reports
 import globe
 import clouds
+import backfill
 from earth_texture import update_earth_texture_if_stale
 
 HISTORY_HOURS = 48
@@ -82,6 +83,18 @@ def main():
         output_path = paths[slug]["dashboard"]
         history_path = paths[slug]["history"]
         reports_path = paths[slug]["reports"]
+
+        # A no-op for any location that already has a proper log - only
+        # ever does real work the first few runs after a brand new
+        # location is added, so it's safe to leave wired in permanently.
+        try:
+            added = backfill.backfill_if_needed(csv_path, loc["lat"], loc["lon"])
+            if added:
+                print("[{}] backfilled {} days of historical hourly readings".format(
+                    slug, added // 24 or 1,
+                ))
+        except Exception as e:
+            print("[{}] historical backfill failed (non-fatal): {}".format(slug, e), file=sys.stderr)
 
         print("[{}] fetching current conditions...".format(slug))
         try:

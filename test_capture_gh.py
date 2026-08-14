@@ -53,6 +53,34 @@ def make_mock_response(temp=15.0, pressure=1013.0, api_time="2026-08-06T10:30"):
     return FakeResp()
 
 
+def make_empty_archive_response():
+    """capture.py also calls backfill.backfill_if_needed() for every
+    location with a near-empty CSV log (which, in these tests, is every
+    location, every run) - it hits the same mocked urllib.request.urlopen.
+    An empty hourly/daily block makes it a clean no-op so these tests can
+    keep asserting exact row counts for the regular capture flow."""
+    body = json.dumps({"hourly": {"time": []}, "daily": {"time": []}}).encode("utf-8")
+
+    class FakeResp:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def read(self): return body
+
+    return FakeResp()
+
+
+def make_dispatching_urlopen(forecast_response):
+    """Routes the mocked urlopen by URL: backfill.py's archive-api calls
+    get an empty (no-op) response, everything else (weather_lib.py's
+    forecast/air-quality calls) gets the given forecast fake."""
+    def _urlopen(req, *args, **kwargs):
+        url = getattr(req, "full_url", str(req))
+        if "archive-api.open-meteo.com" in url:
+            return make_empty_archive_response()
+        return forecast_response
+    return _urlopen
+
+
 class TestCaptureGitHubActions(unittest.TestCase):
     def setUp(self):
         self.tmpdir = "test_tmp_capture_gh"
@@ -69,7 +97,7 @@ class TestCaptureGitHubActions(unittest.TestCase):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_writes_index_html_and_csv_at_repo_root(self):
-        with unittest.mock.patch("urllib.request.urlopen", return_value=make_mock_response()):
+        with unittest.mock.patch("urllib.request.urlopen", side_effect=make_dispatching_urlopen(make_mock_response())):
             capture.main()
 
         self.assertTrue(os.path.exists("index.html"), "should write index.html directly at repo root for GitHub Pages")
@@ -86,9 +114,9 @@ class TestCaptureGitHubActions(unittest.TestCase):
         self.assertEqual(len(rows), 2, "header + 1 data row")
 
     def test_second_run_same_api_time_does_not_duplicate(self):
-        with unittest.mock.patch("urllib.request.urlopen", return_value=make_mock_response(api_time="2026-08-06T10:30")):
+        with unittest.mock.patch("urllib.request.urlopen", side_effect=make_dispatching_urlopen(make_mock_response(api_time="2026-08-06T10:30"))):
             capture.main()
-        with unittest.mock.patch("urllib.request.urlopen", return_value=make_mock_response(api_time="2026-08-06T10:30")):
+        with unittest.mock.patch("urllib.request.urlopen", side_effect=make_dispatching_urlopen(make_mock_response(api_time="2026-08-06T10:30"))):
             capture.main()
 
         with open(os.path.join("data", "meriden.csv"), encoding="utf-8") as f:
@@ -96,9 +124,9 @@ class TestCaptureGitHubActions(unittest.TestCase):
         self.assertEqual(len(rows), 2, "second run with identical api_time should be a no-op, not a duplicate row")
 
     def test_new_reading_appends_a_second_row(self):
-        with unittest.mock.patch("urllib.request.urlopen", return_value=make_mock_response(api_time="2026-08-06T10:30", temp=15.0)):
+        with unittest.mock.patch("urllib.request.urlopen", side_effect=make_dispatching_urlopen(make_mock_response(api_time="2026-08-06T10:30", temp=15.0))):
             capture.main()
-        with unittest.mock.patch("urllib.request.urlopen", return_value=make_mock_response(api_time="2026-08-06T10:45", temp=15.4)):
+        with unittest.mock.patch("urllib.request.urlopen", side_effect=make_dispatching_urlopen(make_mock_response(api_time="2026-08-06T10:45", temp=15.4))):
             capture.main()
 
         with open(os.path.join("data", "meriden.csv"), encoding="utf-8") as f:
@@ -148,7 +176,7 @@ class TestMultiLocationCapture(unittest.TestCase):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_default_location_writes_index_others_get_own_pages(self):
-        with unittest.mock.patch("urllib.request.urlopen", return_value=make_mock_response()):
+        with unittest.mock.patch("urllib.request.urlopen", side_effect=make_dispatching_urlopen(make_mock_response())):
             capture.main()
 
         self.assertTrue(os.path.exists("index.html"))
@@ -167,7 +195,7 @@ class TestMultiLocationCapture(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join("data", "la-rochelle.csv")))
 
     def test_every_page_links_to_every_other_location(self):
-        with unittest.mock.patch("urllib.request.urlopen", return_value=make_mock_response()):
+        with unittest.mock.patch("urllib.request.urlopen", side_effect=make_dispatching_urlopen(make_mock_response())):
             capture.main()
 
         with open("index.html", encoding="utf-8") as f:
