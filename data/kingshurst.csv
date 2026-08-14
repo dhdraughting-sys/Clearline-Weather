@@ -1,0 +1,2 @@
+captured_at,api_time,temp_c,apparent_c,dew_point_c,humidity_pct,pressure_msl_hpa,surface_pressure_hpa,wind_kph,wind_dir_deg,gusts_kph,precip_mm,rain_mm,snowfall_cm,cloud_pct,uv_index,visibility_m,weather_code,is_day,sunrise,sunset,aqi,pm2_5,pm10
+2026-08-14T08:30:12,2026-08-14T08:30,21.3,21.9,16.3,73,1018.5,1007.3,10.8,279,21.2,0.0,0.0,0.0,50,0.4,19680.0,2,1,05:48,20:35,17,4.6,7.6

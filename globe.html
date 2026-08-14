@@ -47,7 +47,7 @@
     </div>
     <div class="globe-hint">Drag to rotate &middot; tap a pin to jump to that location</div>
     <div class="globe-caption">Real satellite imagery (NASA GIBS) from 13 Aug 2026 - updated once a day, not live-animated.</div>
-    <div class="globe-legend"><a class="globe-legend-item" href="index.html"><span class="globe-legend-dot"></span>Meriden, CV7 7HT</a><a class="globe-legend-item" href="dashboard_heathrow.html"><span class="globe-legend-dot"></span>London Heathrow</a><a class="globe-legend-item" href="dashboard_dawlish-warren.html"><span class="globe-legend-dot"></span>Dawlish Warren</a><a class="globe-legend-item" href="dashboard_inverness.html"><span class="globe-legend-dot"></span>Inverness</a><a class="globe-legend-item" href="dashboard_la-rochelle.html"><span class="globe-legend-dot"></span>La Rochelle, France</a></div>
+    <div class="globe-legend"><a class="globe-legend-item" href="index.html"><span class="globe-legend-dot"></span>Meriden, CV7 7HT</a><a class="globe-legend-item" href="dashboard_heathrow.html"><span class="globe-legend-dot"></span>London Heathrow</a><a class="globe-legend-item" href="dashboard_dawlish-warren.html"><span class="globe-legend-dot"></span>Dawlish Warren</a><a class="globe-legend-item" href="dashboard_inverness.html"><span class="globe-legend-dot"></span>Inverness</a><a class="globe-legend-item" href="dashboard_la-rochelle.html"><span class="globe-legend-dot"></span>La Rochelle, France</a><a class="globe-legend-item" href="dashboard_kingshurst.html"><span class="globe-legend-dot"></span>Kingshurst, B36 0LG</a></div>
   </div>
 
   <div class="footer-note">
@@ -59,7 +59,7 @@ import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.185.1/
 
 var wrap = document.getElementById('globe-canvas-wrap');
 var statusEl = document.getElementById('globe-status');
-var locations = [{name:'Meriden, CV7 7HT',lat:52.427,lon:-1.66,url:'index.html'},{name:'London Heathrow',lat:51.47,lon:-0.4543,url:'dashboard_heathrow.html'},{name:'Dawlish Warren',lat:50.5931,lon:-3.4227,url:'dashboard_dawlish-warren.html'},{name:'Inverness',lat:57.4778,lon:-4.2247,url:'dashboard_inverness.html'},{name:'La Rochelle, France',lat:46.1603,lon:-1.1511,url:'dashboard_la-rochelle.html'}];
+var locations = [{name:'Meriden, CV7 7HT',lat:52.427,lon:-1.66,url:'index.html'},{name:'London Heathrow',lat:51.47,lon:-0.4543,url:'dashboard_heathrow.html'},{name:'Dawlish Warren',lat:50.5931,lon:-3.4227,url:'dashboard_dawlish-warren.html'},{name:'Inverness',lat:57.4778,lon:-4.2247,url:'dashboard_inverness.html'},{name:'La Rochelle, France',lat:46.1603,lon:-1.1511,url:'dashboard_la-rochelle.html'},{name:'Kingshurst, B36 0LG',lat:52.496546,lon:-1.747262,url:'dashboard_kingshurst.html'}];
 
 function setStatus(msg) {
   if (statusEl) statusEl.textContent = msg;
