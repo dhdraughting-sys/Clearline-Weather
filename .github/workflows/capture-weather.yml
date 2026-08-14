@@ -47,10 +47,18 @@ jobs:
         with:
           python-version: "3.12"
 
+      # capture.py exits non-zero if ANY single location fails to fetch
+      # (e.g. a transient network timeout) - continue-on-error means that
+      # doesn't stop the job here. Every OTHER location's freshly-fetched
+      # data and regenerated pages still deserve to be saved; one bad
+      # apple shouldn't throw out the whole basket.
       - name: Fetch current weather and rebuild the dashboard
+        id: capture
         run: python capture.py
+        continue-on-error: true
 
       - name: Commit and push if anything changed
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -69,3 +77,13 @@ jobs:
               git push
             fi
           fi
+
+      # Runs last, after the good data from every other location is
+      # already safely committed and pushed above. Only now do we mark
+      # the run red, purely so a real per-location problem still shows up
+      # as a failure email rather than going unnoticed.
+      - name: Flag the run if any location failed to update
+        if: steps.capture.outcome == 'failure'
+        run: |
+          echo "capture.py reported at least one location failed this run - see the earlier step's log for which one and why. Everything that DID succeed has already been committed and pushed."
+          exit 1
